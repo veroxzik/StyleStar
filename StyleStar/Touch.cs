@@ -29,7 +29,7 @@ namespace StyleStar
 
             // Use the closest point and get the time difference
             float diffMS = (float)(((note.BeatLocation - validPoints.First().Beat) * 60 / Globals.CurrentBpm));
-            if (diffMS > Timing.Bad) // Too soon to hit, just leave
+            if (diffMS > NoteTiming.Bad) // Too soon to hit, just leave
                 return false;
     
             // All other times are valid

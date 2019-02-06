@@ -120,9 +120,9 @@ namespace StyleStar
             foreach (var motion in Motions)
                 motion.PreloadTexture();
             foreach (var hold in Holds)
-
-                foreach (var step in Steps)
-                    step.PreloadTexture();
+                hold.PreloadTexture();
+            foreach (var step in Steps)
+                step.PreloadTexture();
         }
 
         private NoteParse ParseLine(string line)

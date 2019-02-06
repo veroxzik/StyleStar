@@ -48,6 +48,8 @@ namespace StyleStar
         KeyboardState prevState;
 
         TouchCollection touchCollection = new TouchCollection();
+        MotionCollection motionCollection = new MotionCollection();
+        GradeCollection gradeCollection = new GradeCollection();
 
         // Hit Debug
         double hitBeat = 0;
@@ -124,8 +126,9 @@ namespace StyleStar
             foreach (var folder in folders)
             {
                 var files = folder.EnumerateFiles();
-                var chart = files.First(f => f.FullName.EndsWith(".sus")).FullName;
-                songlist.Add(new SongMetadata(chart));
+                var chart = files.FirstOrDefault(f => f.FullName.EndsWith(".sus"));
+                if(chart != null)
+                    songlist.Add(new SongMetadata(chart.FullName));
             }
         }
 
@@ -178,38 +181,108 @@ namespace StyleStar
                 case Mode.GamePlay:
                     // Steps, which will hopefully move to an HID event class later
                     var currentBeat = hitBeat = musicManager.GetCurrentBeat();
-                    var surroundingList = new List<Note>(currentSongNotes.Steps.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
-                    surroundingList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
+                    var stepList = new List<Note>(currentSongNotes.Steps.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
+                    stepList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
 
+                    var holdList = new List<Hold>(
+                        currentSongNotes.Holds.Where(x =>
+                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 2 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)));
+
+                    var motionList = new List<Note>(currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
+                    motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
+
+                    // Temporary keyboard inputs
                     for (int i = 0; i < 8; i++)
                     {
                         if (kbState.IsKeyDown(touchkeys[i]) && !prevState.IsKeyDown(touchkeys[i]))
                         {
-                            if (surroundingList.Count > 0)
-                                closestNoteBeat = surroundingList.First().BeatLocation;
+                            if (stepList.Count > 0)
+                                closestNoteBeat = stepList.First().BeatLocation;
                             int id = random.Next(0, int.MaxValue);
-                            touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)(1048 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id });
+                            touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id });
                             KeyDictionary.Add(touchkeys[i], id);
+
+                            motionCollection.JumpBeat = double.NaN;
                         }
                         else if (!kbState.IsKeyDown(touchkeys[i]) && prevState.IsKeyDown(touchkeys[i]))
                         {
                             touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
                             KeyDictionary.Remove(touchkeys[i]);
+
+                            if (touchCollection.Points.Count == 0)
+                                motionCollection.JumpBeat = currentBeat;
                         }
                     }
+                    if (kbState.IsKeyDown(Keys.Space) && !prevState.IsKeyDown(Keys.Space))
+                        motionCollection.DownBeat = currentBeat;
+
+
                     // Check if we've hit any steps
-                    foreach (var step in surroundingList)
+                    foreach (var step in stepList)
                     {
                         // First check to see if they've passed the miss mark
                         var stepTimeMS = ((step.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
-                        if(stepTimeMS < -Timing.Bad)
+                        if (stepTimeMS < -NoteTiming.Bad)
                         {
                             step.HitResult.WasHit = true;   // Let everyone else know this note has been resolved
                             step.HitResult.Difference = Timing.MissFlag;
                         }
                         else if (touchCollection.Points.Count > 0)
-                            touchCollection.CheckHit(step);
+                        {
+                            if (touchCollection.CheckHit(step))
+                                gradeCollection.Set(gameTime, step);
+                        }
                     }
+
+                    // Check if we've hit or are still hitting any holds
+                    foreach (var hold in holdList)
+                    {
+                        // Check start note if necessary
+                        if(!hold.StartNote.HitResult.WasHit)
+                        {
+                            var stepTimeMS = ((hold.StartNote.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
+                            if(stepTimeMS < -NoteTiming.Bad)
+                            {
+                                hold.StartNote.HitResult.WasHit = true; // Let everyone else know this note has been resolved
+                                hold.StartNote.HitResult.Difference = Timing.MissFlag;
+                            }
+                            else if (touchCollection.Points.Count > 0)
+                            {
+                                if (touchCollection.CheckHit(hold.StartNote))
+                                    gradeCollection.Set(gameTime, hold.StartNote);
+                            }
+                        }
+
+                        // Check any shuffles separately
+                        var shuffles = hold.Notes.Where(x => x.Type == NoteType.Shuffle);
+                        foreach (var shuffle in shuffles)
+                        {
+                            // Check window around shuffle and see if the foot is moving in the correct direction
+                        }
+
+                        // Let the note figure out itself whether it's being held and scoring
+                        hold.CheckHold(touchCollection, currentBeat);
+                    }
+
+                    // Check if we've hit any motions
+                    foreach (var motion in motionList)
+                    {
+                        var motionTimeMS = ((motion.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
+                        if(motionTimeMS < -MotionTiming.Miss)
+                        {
+                            motion.HitResult.WasHit = true;
+                            motion.HitResult.Difference = Timing.MissFlag;
+                        }
+                        else if (!double.IsNaN(motionCollection.JumpBeat)) // Also down
+                        {
+                            if (motionCollection.CheckHit(motion))
+                                gradeCollection.Set(gameTime, motion);
+                        }
+                    }
+
+                    // Test grade
+                    if (kbState.IsKeyDown(Keys.R) && !prevState.IsKeyDown(Keys.R))
+                        gradeCollection.Set(gameTime, currentSongNotes.Steps.First());
 
                     // Mostly Debug things
                     if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevState.IsKeyDown(Keys.Enter))
@@ -391,6 +464,11 @@ namespace StyleStar
                         spriteBatch.DrawString(debugFont, "ClosestNote: " + closestNoteBeat.ToString("F4"), new Vector2(1000, 30), Color.Black);
                         spriteBatch.End();
                     }
+
+                    // Draw Grades
+                    spriteBatch.Begin();
+                    gradeCollection.Draw(spriteBatch, gameTime);
+                    spriteBatch.End();
 
                     if (enableProfiling)
                         log.AddEvent(stopwatch.ElapsedMilliseconds, "FPS counters drawn");

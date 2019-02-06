@@ -57,6 +57,25 @@ namespace StyleStar
             return (note.LaneIndex - NumLanes / 2 + del) * BeatToWorldXUnits;
         }
 
+        public static double CalcTransX(float index, float width, Side side)
+        {
+            double del = width / 2;
+            switch (side)
+            {
+                case Side.Left:
+                    del = 0;
+                    break;
+                case Side.Right:
+                    del = width;
+                    break;
+                case Side.NotSet:
+                default:
+                    break;
+            }
+
+            return (index - NumLanes / 2 + del) * BeatToWorldXUnits;
+        }
+
         public static void LoadTextures()
         {
             Textures["StepLeft"] = ContentManager.Load<Texture2D>("StepLeft");
@@ -74,6 +93,14 @@ namespace StyleStar
             Textures["FootLeft"] = ContentManager.Load<Texture2D>("FootLeft");
             Textures["FootRight"] = ContentManager.Load<Texture2D>("FootRight");
             Textures["FootHold"] = ContentManager.Load<Texture2D>("FootHold");
+
+            Textures["PerfectGrade"] = ContentManager.Load<Texture2D>("PerfectGrade");
+            Textures["GreatGrade"] = ContentManager.Load<Texture2D>("GreatGrade");
+            Textures["GoodGrade"] = ContentManager.Load<Texture2D>("GoodGrade");
+            Textures["BadGrade"] = ContentManager.Load<Texture2D>("BadGrade");
+            Textures["MissGrade"] = ContentManager.Load<Texture2D>("MissGrade");
+
+            Textures["HitTexture"] = ContentManager.Load<Texture2D>("HitTexture");
 
             Effect = new BasicEffect(GraphicsManager.GraphicsDevice);
         }

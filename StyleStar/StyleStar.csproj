@@ -42,7 +42,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
+    <Compile Include="Motion.cs" />
     <Compile Include="QuadTexture.cs" />
     <Compile Include="StringExtensions.cs" />
     <Compile Include="StyleStar.cs" />
