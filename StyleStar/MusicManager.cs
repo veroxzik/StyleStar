@@ -13,6 +13,7 @@ namespace StyleStar
 
 
         public bool IsPlaying { get { return Bass.BASS_ChannelIsActive(streamHandle) == BASSActive.BASS_ACTIVE_PLAYING; } }
+        public bool IsFinished { get { return GetCurrentSec() >= (SongLengthSec - (Offset / 1000)); } }
         public long SongLengthBytes { get; private set; }
         public double SongLengthSec { get; private set; }
         public double SongLengthBeats { get; private set; }

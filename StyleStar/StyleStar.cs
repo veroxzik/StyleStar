@@ -14,6 +14,9 @@ namespace StyleStar
     /// </summary>
     public class StyleStar : Game
     {
+        int Width { get { return graphics.PreferredBackBufferWidth; } }
+        int Height { get { return graphics.PreferredBackBufferHeight; } }
+
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
@@ -50,6 +53,17 @@ namespace StyleStar
         TouchCollection touchCollection = new TouchCollection();
         MotionCollection motionCollection = new MotionCollection();
         GradeCollection gradeCollection = new GradeCollection();
+
+        bool enterLoadingScreen;
+        bool leavingLoadingScreen;
+        double loadingScreenTime;
+        int loadingScreenTransition = 400;
+        int loadingScreenWait = 1000;
+        Texture2D loadingScreenImageUL;
+        Texture2D loadingScreenImageUR;
+        Texture2D loadingScreenImageLL;
+        Texture2D loadingScreenImageLR;
+        Rectangle loadingScreenRect;
 
         // Hit Debug
         double hitBeat = 0;
@@ -117,6 +131,10 @@ namespace StyleStar
             noteLanes = new QuadTexture(Content.Load<Texture2D>("NoteLanes"));
             noteLanes.SetVerts(Globals.GradeZoneWidth / 2, -(Globals.GradeZoneWidth / 2), -20, Globals.GradeZoneWidth / 2, -(Globals.GradeZoneWidth / 2), 300, -0.15f);
             background = Content.Load<Texture2D>("Background");
+            loadingScreenImageUL = Content.Load<Texture2D>("LoadingScreenUL");
+            loadingScreenImageUR = Content.Load<Texture2D>("LoadingScreenUR");
+            loadingScreenImageLL = Content.Load<Texture2D>("LoadingScreenLL");
+            loadingScreenImageLR = Content.Load<Texture2D>("LoadingScreenLR");
 
             debugFont = Content.Load<SpriteFont>("DebugFont");
 
@@ -163,6 +181,27 @@ namespace StyleStar
                 case Mode.Options:
                     break;
                 case Mode.SongSelect:
+                    // If we're entering or leaving a loading screen, block other inputs
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                    {
+                        if (gameTime.TotalGameTime.TotalMilliseconds > (loadingScreenTime + loadingScreenTransition + loadingScreenWait))
+                        {
+                            if (enterLoadingScreen)
+                            {
+                                enterLoadingScreen = false;
+                                leavingLoadingScreen = true;
+                                currentMode = Mode.GamePlay;
+                                loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                                break;
+                            }
+                            else
+                            {
+                                leavingLoadingScreen = false;
+                            }
+                        }
+                        else
+                            break;
+                    }
                     if (kbState.IsKeyDown(Keys.Down) && !prevState.IsKeyDown(Keys.Down))
                         currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
 
@@ -172,13 +211,46 @@ namespace StyleStar
                     if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevState.IsKeyDown(Keys.Enter))
                     {
                         LoadSong(songlist[currentSongIndex]);
-                        currentMode = Mode.GamePlay;
+                        //currentMode = Mode.GamePlay;
+                        enterLoadingScreen = true;
+                        loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                     }
-                        
                     break;
                 case Mode.Loading:
                     break;
                 case Mode.GamePlay:
+                    // If we're entering or leaving a loading screen, block other inputs
+                    if(enterLoadingScreen || leavingLoadingScreen)
+                    {
+                        if (gameTime.TotalGameTime.TotalMilliseconds > (loadingScreenTime + loadingScreenTransition + loadingScreenWait))
+                        {
+                            if (enterLoadingScreen)
+                            {
+                                enterLoadingScreen = false;
+                                leavingLoadingScreen = true;
+                                currentMode = Mode.Results;
+                                loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                                break;
+                            }
+                            else
+                            {
+                                leavingLoadingScreen = false;
+                            }
+                        }
+                        else
+                            break;
+                    }
+
+
+                    // Figure out if song is finished
+                    if (musicManager.IsFinished)
+                    {
+                        enterLoadingScreen = true;
+                        loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                        break;
+                    }
+
+
                     // Steps, which will hopefully move to an HID event class later
                     var currentBeat = hitBeat = musicManager.GetCurrentBeat();
                     var stepList = new List<Note>(currentSongNotes.Steps.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
@@ -352,6 +424,33 @@ namespace StyleStar
                         view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
                     break;
                 case Mode.Results:
+                    // If we're entering or leaving a loading screen, block other inputs
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                    {
+                        if (gameTime.TotalGameTime.TotalMilliseconds > (loadingScreenTime + loadingScreenTransition + loadingScreenWait))
+                        {
+                            if (enterLoadingScreen)
+                            {
+                                enterLoadingScreen = false;
+                                leavingLoadingScreen = true;
+                                currentMode = Mode.SongSelect;
+                                loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                                break;
+                            }
+                            else
+                            {
+                                leavingLoadingScreen = false;
+                            }
+                        }
+                        else
+                            break;
+                    }
+
+                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevState.IsKeyDown(Keys.Enter))
+                    {
+                        enterLoadingScreen = true;
+                        loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                    }
                     break;
                 default:
                     break;
@@ -387,12 +486,16 @@ namespace StyleStar
                     break;
                 case Mode.SongSelect:
                     GraphicsDevice.Clear(Color.PaleVioletRed);
+
                     spriteBatch.Begin();
                     for (int i = 0; i < songlist.Count; i++)
                     {
                         spriteBatch.Draw(songlist[i].Thumbnail, new Rectangle(50, graphics.PreferredBackBufferHeight / 2 - 60 + 120 * (i - currentSongIndex), 200, 120), Color.White);
                     }
                     spriteBatch.End();
+
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                        DrawLoadingTransition(gameTime);
                     break;
                 case Mode.Loading:
                     break;
@@ -470,10 +573,28 @@ namespace StyleStar
                     gradeCollection.Draw(spriteBatch, gameTime);
                     spriteBatch.End();
 
+                    // Draw hit stats
+                    if(true)
+                    {
+                        var numStepHit = currentSongNotes.Steps.Where(x => x.HitResult.WasHit && x.HitResult.Difference != Timing.MissFlag).Count();
+                        var numMotionHit = currentSongNotes.Motions.Where(x => x.HitResult.WasHit && x.HitResult.Difference != Timing.MissFlag).Count();
+
+                        spriteBatch.Begin();
+                        spriteBatch.DrawString(debugFont, "Steps: " + numStepHit + " / " + currentSongNotes.Steps.Count, new Vector2(1100, 300), Color.White);
+                        spriteBatch.DrawString(debugFont, "Motions: " + numMotionHit + " / " + currentSongNotes.Motions.Count, new Vector2(1100, 320), Color.White);
+                        spriteBatch.End();
+                    }
+
                     if (enableProfiling)
                         log.AddEvent(stopwatch.ElapsedMilliseconds, "FPS counters drawn");
+
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                        DrawLoadingTransition(gameTime);
                     break;
                 case Mode.Results:
+                    GraphicsDevice.Clear(Color.LightSkyBlue);
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                        DrawLoadingTransition(gameTime);
                     break;
                 default:
                     break;
@@ -486,6 +607,22 @@ namespace StyleStar
                 log.AddEvent(stopwatch.ElapsedMilliseconds, "Base Method");
                 DrawCycleLog.Add(log);
             }
+        }
+
+        private void DrawLoadingTransition(GameTime gt)
+        {
+            var duration = gt.TotalGameTime.TotalMilliseconds - loadingScreenTime;
+            var ratio = enterLoadingScreen ? 1 - duration / loadingScreenTransition : duration / loadingScreenTransition;
+            var xL = Math.Min(0, 0 - Width / 2 * ratio);
+            var xR = Math.Max(Width / 2, Width / 2 + Width / 2 * ratio);
+            var yT = Math.Min(0, 0 - Height / 2 * ratio);
+            var yB = Math.Max(Height / 2, Height / 2 + Height / 2 * ratio);
+            spriteBatch.Begin();
+            spriteBatch.Draw(loadingScreenImageUL, new Rectangle((int)xL, (int)yT, Width / 2, Height / 2), Color.White);
+            spriteBatch.Draw(loadingScreenImageUR, new Rectangle((int)xR, (int)yT, Width / 2, Height / 2), Color.White);
+            spriteBatch.Draw(loadingScreenImageLL, new Rectangle((int)xL, (int)yB, Width / 2, Height / 2), Color.White);
+            spriteBatch.Draw(loadingScreenImageLR, new Rectangle((int)xR, (int)yB, Width / 2, Height / 2), Color.White);
+            spriteBatch.End();
         }
 
         private void ExportLog()
