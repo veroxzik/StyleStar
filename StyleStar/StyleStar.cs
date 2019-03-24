@@ -47,8 +47,12 @@ namespace StyleStar
         // Song Selection
         List<SongMetadata> songlist = new List<SongMetadata>();
         int currentSongIndex = 0;
+        int currentFolderIndex = 0;
+        int selectedFolderIndex = -1;
+        List<FolderParams> folderParams = new List<FolderParams>();
 
-        KeyboardState prevState;
+        KeyboardState prevKbState;
+        MouseState prevMouseState;
 
         TouchCollection touchCollection = new TouchCollection();
         MotionCollection motionCollection = new MotionCollection();
@@ -137,6 +141,11 @@ namespace StyleStar
             loadingScreenImageLR = Content.Load<Texture2D>("LoadingScreenLR");
 
             debugFont = Content.Load<SpriteFont>("DebugFont");
+            Globals.Font = new Dictionary<string, SpriteFont>();
+            Globals.Font.Add("Regular", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Regular"));
+            Globals.Font.Add("Bold", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Bold"));
+            Globals.Font.Add("Italic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Italic"));
+            Globals.Font.Add("BoldItalic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-BoldItalic"));
 
             // Load songs
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -147,6 +156,12 @@ namespace StyleStar
                 var chart = files.FirstOrDefault(f => f.FullName.EndsWith(".sus"));
                 if(chart != null)
                     songlist.Add(new SongMetadata(chart.FullName));
+            }
+            folderParams.Add(new FolderParams() { Type = SortType.Alpha, Value = 0, Category = "BY TITLE", Name = "ALL SONGS" });
+            folderParams.Add(new FolderParams() { Type = SortType.Alpha, Value = 1, Category = "BY ARTIST", Name = "ALL SONGS" });
+            for (int i = 1; i <= 10; i++)
+            {
+                folderParams.Add(new FolderParams() { Type = SortType.Level, Value = i, Category = "DIFFICULTY", Name = "LEVEL " + i.ToString() });
             }
         }
 
@@ -167,11 +182,12 @@ namespace StyleStar
         protected override void Update(GameTime gameTime)
         {
             KeyboardState kbState = Keyboard.GetState();
+            MouseState mouseState = Mouse.GetState();
 
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || kbState.IsKeyDown(Keys.Escape))
+            if (kbState.IsKeyDown(Keys.F4))
                 Exit();
 
-            if ((kbState.IsKeyDown(Keys.RightAlt) || kbState.IsKeyDown(Keys.LeftAlt)) && kbState.IsKeyDown(Keys.Enter) && !prevState.IsKeyDown(Keys.Enter))
+            if ((kbState.IsKeyDown(Keys.RightAlt) || kbState.IsKeyDown(Keys.LeftAlt)) && kbState.IsKeyDown(Keys.Enter) && !prevKbState.IsKeyDown(Keys.Enter))
                 graphics.ToggleFullScreen();
 
             switch (currentMode)
@@ -202,19 +218,62 @@ namespace StyleStar
                         else
                             break;
                     }
-                    if (kbState.IsKeyDown(Keys.Down) && !prevState.IsKeyDown(Keys.Down))
-                        currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
-
-                    if (kbState.IsKeyDown(Keys.Up) && !prevState.IsKeyDown(Keys.Up))
-                        currentSongIndex = currentSongIndex < (songlist.Count - 1) ? ++currentSongIndex : songlist.Count - 1;
-
-                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevState.IsKeyDown(Keys.Enter))
+                    if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down) || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
                     {
-                        LoadSong(songlist[currentSongIndex]);
-                        //currentMode = Mode.GamePlay;
-                        enterLoadingScreen = true;
-                        loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                        if (selectedFolderIndex == -1)
+                            currentFolderIndex = currentFolderIndex < (folderParams.Count - 1) ? ++currentFolderIndex : folderParams.Count - 1;
+                        else
+                            currentSongIndex = currentSongIndex < (songlist.Count - 1) ? ++currentSongIndex : songlist.Count - 1;
                     }
+
+                    if (kbState.IsKeyDown(Keys.Up) && !prevKbState.IsKeyDown(Keys.Up) || (mouseState.ScrollWheelValue > prevMouseState.ScrollWheelValue))
+                    {
+                        if (selectedFolderIndex == -1)
+                            currentFolderIndex = currentFolderIndex > 0 ? --currentFolderIndex : 0;
+                        else
+                            currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
+                    }
+
+                    if ((kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
+                        || (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed))
+                    {
+                        if (selectedFolderIndex == -1)
+                        {
+                            selectedFolderIndex = currentFolderIndex;
+                            switch (folderParams[selectedFolderIndex].Type)
+                            {
+                                case SortType.Alpha:
+                                    if(folderParams[selectedFolderIndex].Value == 0)
+                                        songlist = songlist.OrderBy(x => x.Title).ToList();
+                                    else
+                                        songlist = songlist.OrderBy(x => x.Artist).ToList();
+                                    break;
+                                case SortType.Level:
+                                    songlist = songlist.OrderBy(x => x.Level).ToList();
+                                    currentSongIndex = songlist.FindLastIndex(x => x.Level < folderParams[selectedFolderIndex].Value) + 1;
+                                    break;
+                                case SortType.Genre:
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            LoadSong(songlist[currentSongIndex]);
+                            //currentMode = Mode.GamePlay;
+                            enterLoadingScreen = true;
+                            loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                        }
+                    }
+
+                    if ((kbState.IsKeyDown(Keys.Escape) && !prevKbState.IsKeyDown(Keys.Escape)) || (kbState.IsKeyDown(Keys.Back) && !prevKbState.IsKeyDown(Keys.Back))
+                        || (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed))
+                    {
+                        selectedFolderIndex = -1;
+                        currentSongIndex = 0;
+                    }
+
                     break;
                 case Mode.Loading:
                     break;
@@ -226,6 +285,7 @@ namespace StyleStar
                         {
                             if (enterLoadingScreen)
                             {
+                                musicManager.Pause();
                                 enterLoadingScreen = false;
                                 leavingLoadingScreen = true;
                                 currentMode = Mode.Results;
@@ -235,21 +295,20 @@ namespace StyleStar
                             else
                             {
                                 leavingLoadingScreen = false;
+                                musicManager.Play();
                             }
                         }
                         else
                             break;
                     }
 
-
                     // Figure out if song is finished
-                    if (musicManager.IsFinished)
+                    if (kbState.IsKeyDown(Keys.Escape) || musicManager.IsFinished)
                     {
                         enterLoadingScreen = true;
                         loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                         break;
                     }
-
 
                     // Steps, which will hopefully move to an HID event class later
                     var currentBeat = hitBeat = musicManager.GetCurrentBeat();
@@ -266,7 +325,7 @@ namespace StyleStar
                     // Temporary keyboard inputs
                     for (int i = 0; i < 8; i++)
                     {
-                        if (kbState.IsKeyDown(touchkeys[i]) && !prevState.IsKeyDown(touchkeys[i]))
+                        if (kbState.IsKeyDown(touchkeys[i]) && !prevKbState.IsKeyDown(touchkeys[i]))
                         {
                             if (stepList.Count > 0)
                                 closestNoteBeat = stepList.First().BeatLocation;
@@ -276,7 +335,7 @@ namespace StyleStar
 
                             motionCollection.JumpBeat = double.NaN;
                         }
-                        else if (!kbState.IsKeyDown(touchkeys[i]) && prevState.IsKeyDown(touchkeys[i]))
+                        else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
                         {
                             touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
                             KeyDictionary.Remove(touchkeys[i]);
@@ -285,9 +344,8 @@ namespace StyleStar
                                 motionCollection.JumpBeat = currentBeat;
                         }
                     }
-                    if (kbState.IsKeyDown(Keys.Space) && !prevState.IsKeyDown(Keys.Space))
+                    if (kbState.IsKeyDown(Keys.Space) && !prevKbState.IsKeyDown(Keys.Space))
                         motionCollection.DownBeat = currentBeat;
-
 
                     // Check if we've hit any steps
                     foreach (var step in stepList)
@@ -353,11 +411,11 @@ namespace StyleStar
                     }
 
                     // Test grade
-                    if (kbState.IsKeyDown(Keys.R) && !prevState.IsKeyDown(Keys.R))
+                    if (kbState.IsKeyDown(Keys.R) && !prevKbState.IsKeyDown(Keys.R))
                         gradeCollection.Set(gameTime, currentSongNotes.Steps.First());
 
                     // Mostly Debug things
-                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevState.IsKeyDown(Keys.Enter))
+                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
                     {
                         if (!musicManager.IsPlaying)
                             musicManager.Play();
@@ -365,63 +423,63 @@ namespace StyleStar
                             musicManager.Pause();
                     }
 
-                    if (kbState.IsKeyDown(Keys.Down) && !prevState.IsKeyDown(Keys.Down))
+                    if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down))
                         Globals.BeatToWorldYUnits /= 2;
 
-                    if (kbState.IsKeyDown(Keys.Up) && !prevState.IsKeyDown(Keys.Up))
+                    if (kbState.IsKeyDown(Keys.Up) && !prevKbState.IsKeyDown(Keys.Up))
                         Globals.BeatToWorldYUnits *= 2;
 
-                    if (kbState.IsKeyDown(Keys.Delete) && !prevState.IsKeyDown(Keys.Delete))
+                    if (kbState.IsKeyDown(Keys.Delete) && !prevKbState.IsKeyDown(Keys.Delete))
                         drawRateMin = float.PositiveInfinity;
 
-                    if (kbState.IsKeyDown(Keys.P) && !prevState.IsKeyDown(Keys.P))
+                    if (kbState.IsKeyDown(Keys.P) && !prevKbState.IsKeyDown(Keys.P))
                         ExportLog();
 
-                    // Modify Camera
-                    bool camChanged = false;
-                    if (kbState.IsKeyDown(Keys.NumPad9) && !prevState.IsKeyDown(Keys.NumPad9))
-                    {
-                        cameraTarget.Y += 1;
-                        camChanged = true;
-                    }
-                    else if (kbState.IsKeyDown(Keys.NumPad6) && !prevState.IsKeyDown(Keys.NumPad6))
-                    {
-                        cameraTarget.Y -= 1;
-                        camChanged = true;
-                    }
-                    if (kbState.IsKeyDown(Keys.NumPad3) && !prevState.IsKeyDown(Keys.NumPad3))
-                    {
-                        cameraTarget.Z += 1;
-                        camChanged = true;
-                    }
-                    else if (kbState.IsKeyDown(Keys.NumPad2) && !prevState.IsKeyDown(Keys.NumPad2))
-                    {
-                        cameraTarget.Z -= 1;
-                        camChanged = true;
-                    }
-                    if (kbState.IsKeyDown(Keys.NumPad7) && !prevState.IsKeyDown(Keys.NumPad7))
-                    {
-                        cameraPos.Z += 1;
-                        camChanged = true;
-                    }
-                    else if (kbState.IsKeyDown(Keys.NumPad4) && !prevState.IsKeyDown(Keys.NumPad4))
-                    {
-                        cameraPos.Z -= 1;
-                        camChanged = true;
-                    }
-                    if (kbState.IsKeyDown(Keys.NumPad8) && !prevState.IsKeyDown(Keys.NumPad8))
-                    {
-                        cameraPos.Y += 1;
-                        camChanged = true;
-                    }
-                    else if (kbState.IsKeyDown(Keys.NumPad5) && !prevState.IsKeyDown(Keys.NumPad5))
-                    {
-                        cameraPos.Y -= 1;
-                        camChanged = true;
-                    }
+                    //// Modify Camera
+                    //bool camChanged = false;
+                    //if (kbState.IsKeyDown(Keys.NumPad9) && !prevState.IsKeyDown(Keys.NumPad9))
+                    //{
+                    //    cameraTarget.Y += 1;
+                    //    camChanged = true;
+                    //}
+                    //else if (kbState.IsKeyDown(Keys.NumPad6) && !prevState.IsKeyDown(Keys.NumPad6))
+                    //{
+                    //    cameraTarget.Y -= 1;
+                    //    camChanged = true;
+                    //}
+                    //if (kbState.IsKeyDown(Keys.NumPad3) && !prevState.IsKeyDown(Keys.NumPad3))
+                    //{
+                    //    cameraTarget.Z += 1;
+                    //    camChanged = true;
+                    //}
+                    //else if (kbState.IsKeyDown(Keys.NumPad2) && !prevState.IsKeyDown(Keys.NumPad2))
+                    //{
+                    //    cameraTarget.Z -= 1;
+                    //    camChanged = true;
+                    //}
+                    //if (kbState.IsKeyDown(Keys.NumPad7) && !prevState.IsKeyDown(Keys.NumPad7))
+                    //{
+                    //    cameraPos.Z += 1;
+                    //    camChanged = true;
+                    //}
+                    //else if (kbState.IsKeyDown(Keys.NumPad4) && !prevState.IsKeyDown(Keys.NumPad4))
+                    //{
+                    //    cameraPos.Z -= 1;
+                    //    camChanged = true;
+                    //}
+                    //if (kbState.IsKeyDown(Keys.NumPad8) && !prevState.IsKeyDown(Keys.NumPad8))
+                    //{
+                    //    cameraPos.Y += 1;
+                    //    camChanged = true;
+                    //}
+                    //else if (kbState.IsKeyDown(Keys.NumPad5) && !prevState.IsKeyDown(Keys.NumPad5))
+                    //{
+                    //    cameraPos.Y -= 1;
+                    //    camChanged = true;
+                    //}
 
-                    if (camChanged)
-                        view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
+                    //if (camChanged)
+                    //    view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
                     break;
                 case Mode.Results:
                     // If we're entering or leaving a loading screen, block other inputs
@@ -446,7 +504,7 @@ namespace StyleStar
                             break;
                     }
 
-                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevState.IsKeyDown(Keys.Enter))
+                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
                     {
                         enterLoadingScreen = true;
                         loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
@@ -462,7 +520,8 @@ namespace StyleStar
 
             base.Update(gameTime);
 
-            prevState = kbState;
+            prevKbState = kbState;
+            prevMouseState = mouseState;
         }
 
         /// <summary>
@@ -485,14 +544,53 @@ namespace StyleStar
                 case Mode.Options:
                     break;
                 case Mode.SongSelect:
-                    GraphicsDevice.Clear(Color.PaleVioletRed);
-
-                    spriteBatch.Begin();
-                    for (int i = 0; i < songlist.Count; i++)
-                    {
-                        spriteBatch.Draw(songlist[i].Thumbnail, new Rectangle(50, graphics.PreferredBackBufferHeight / 2 - 60 + 120 * (i - currentSongIndex), 200, 120), Color.White);
-                    }
+                    GraphicsDevice.Clear(Color.Black);
+                    spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+                    spriteBatch.Draw(Globals.Textures["SongSelectionBG"], new Vector2(0, 0), Color.White);
                     spriteBatch.End();
+
+                    SongSelection.DrawSelectionFrame(spriteBatch);
+
+
+                    for (int i = 0; i < folderParams.Count; i++)
+                    {
+                        SongSelection.DrawFolder(spriteBatch, folderParams[i].Category, folderParams[i].Name, i - currentFolderIndex, selectedFolderIndex == -1);
+                    }
+                    if(currentFolderIndex < 2)
+                    {
+                        for (int i = -2; i < 0; i++)
+                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentFolderIndex, selectedFolderIndex == -1);
+                    }
+                    else if ((folderParams.Count - currentFolderIndex) < 4)
+                    {
+                        for (int i = folderParams.Count; i < folderParams.Count+4; i++)
+                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentFolderIndex, selectedFolderIndex == -1);
+                    }
+
+                    if (selectedFolderIndex >= 0)
+                    {
+                        for (int i = 0; i < songlist.Count; i++)
+                        {
+                            songlist[i].Draw(spriteBatch, i - currentSongIndex);
+                        }
+                    }
+                    if (currentSongIndex < 2 && selectedFolderIndex >= 0)
+                    {
+                        for (int i = -2; i < 0; i++)
+                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentSongIndex, true);
+                    }
+                    else if ((songlist.Count - currentSongIndex) < 4 && selectedFolderIndex >= 0)
+                    {
+                        for (int i = songlist.Count; i < songlist.Count + 4; i++)
+                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentSongIndex, true);
+                    }
+
+                    //spriteBatch.Begin();
+                    //for (int i = 0; i < songlist.Count; i++)
+                    //{
+                    //    spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle(50, graphics.PreferredBackBufferHeight / 2 - 60 + 120 * (i - currentSongIndex), 200, 120), Color.White);
+                    //}
+                    //spriteBatch.End();
 
                     if (enterLoadingScreen || leavingLoadingScreen)
                         DrawLoadingTransition(gameTime);
@@ -560,11 +658,19 @@ namespace StyleStar
                     }
 
                     // Draw Hit debugging
-                    if(true)
+                    if(false)
                     {
                         spriteBatch.Begin();
                         spriteBatch.DrawString(debugFont, "HitBeat: " + hitBeat.ToString("F4"), new Vector2(1000, 10), Color.Black);
                         spriteBatch.DrawString(debugFont, "ClosestNote: " + closestNoteBeat.ToString("F4"), new Vector2(1000, 30), Color.Black);
+                        spriteBatch.End();
+                    }
+
+                    // Draw beat#
+                    if (true)
+                    {
+                        spriteBatch.Begin();
+                        spriteBatch.DrawString(debugFont, "Current Beat: " + musicManager.GetCurrentBeat().ToString("F4"), new Vector2(1000, 10), Color.White);
                         spriteBatch.End();
                     }
 
@@ -593,6 +699,9 @@ namespace StyleStar
                     break;
                 case Mode.Results:
                     GraphicsDevice.Clear(Color.LightSkyBlue);
+
+                    ResultScreen.Draw(spriteBatch, currentSongNotes);
+
                     if (enterLoadingScreen || leavingLoadingScreen)
                         DrawLoadingTransition(gameTime);
                     break;
@@ -657,7 +766,7 @@ namespace StyleStar
             currentSongNotes = new NoteCollection();
             currentSongMeta = currentSongNotes.ParseFile(meta.ChartFullPath);
 
-            musicManager.LoadSong(currentSongMeta.FilePath + currentSongMeta.SongFilename, currentSongMeta.BPM);
+            musicManager.LoadSong(currentSongMeta.FilePath + currentSongMeta.SongFilename, currentSongMeta.BpmEvents);
             musicManager.Offset = currentSongMeta.PlaybackOffset * 1000;
 
             // Preload all textures

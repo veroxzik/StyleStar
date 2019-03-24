@@ -33,6 +33,8 @@ namespace StyleStar
         public static Dictionary<string, Texture2D> Textures = new Dictionary<string, Texture2D>();
         public static BasicEffect Effect;
 
+        public static Dictionary<string, SpriteFont> Font { get; set; }
+
         public static double CalcTransX(Note note)
         {
             return CalcTransX(note, Side.NotSet);
@@ -101,6 +103,11 @@ namespace StyleStar
             Textures["MissGrade"] = ContentManager.Load<Texture2D>("MissGrade");
 
             Textures["HitTexture"] = ContentManager.Load<Texture2D>("HitTexture");
+
+            Textures["SongSelectionBG"] = ContentManager.Load<Texture2D>("SongSelectionBG");
+            Textures["SongBG"] = ContentManager.Load<Texture2D>("SongBG");
+            Textures["SongDifficulty"] = ContentManager.Load<Texture2D>("SongDifficulty");
+            Textures["FolderOverlay"] = ContentManager.Load<Texture2D>("FolderOverlay");
 
             Effect = new BasicEffect(GraphicsManager.GraphicsDevice);
         }

@@ -10,6 +10,8 @@ namespace StyleStar
 {
     public class NoteCollection
     {
+        public SongMetadata Metadata;
+
         public List<Note> Steps { get; private set; } = new List<Note>();
         public List<Hold> Holds { get; private set; } = new List<Hold>();
         public List<Note> Motions { get; private set; } = new List<Note>();
@@ -21,7 +23,7 @@ namespace StyleStar
 
         public SongMetadata ParseFile(string fileName)
         {
-            SongMetadata meta = new SongMetadata(fileName);
+            Metadata = new SongMetadata(fileName);
 
             Dictionary<int, int> holdIDlist = new Dictionary<int, int>();
 
@@ -107,12 +109,15 @@ namespace StyleStar
                         double noteSub = 1.0 / parsed.Notes.Count;
                         for (int i = 0; i < parsed.Notes.Count; i++)
                         {
- 
+                            if (parsed.Notes[i].Item2 == 0)
+                                break;
+                            else
+                                Metadata.BpmEvents.Add(new BpmChangeEvent(Metadata.BpmIndex[parsed.Notes[i].Item2], 4 * (parsed.Measure + i * noteSub)));
                         }
                     }
                 }
             }
-            return meta;
+            return Metadata;
         }
 
         public void PreloadTextures()
