@@ -43,8 +43,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="BpmChange.cs" />
+    <Compile Include="FixedSizedQueue.cs" />
     <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
+    <Compile Include="Kinect.cs" />
+    <Compile Include="KinectTouch.cs" />
     <Compile Include="Motion.cs" />
     <Compile Include="QuadTexture.cs" />
     <Compile Include="ResultScreen.cs" />
@@ -72,6 +75,7 @@
     <Reference Include="Bass.Net">
       <HintPath>..\..\Programming\Bass24.Net\v4.5\Bass.Net.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Kinect, Version=1.8.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="MonoGame.Framework">
       <HintPath>$(MonoGameInstallDirectory)\MonoGame\v3.0\Assemblies\DesktopGL\MonoGame.Framework.dll</HintPath>
     </Reference>

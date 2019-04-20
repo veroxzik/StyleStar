@@ -62,6 +62,11 @@ namespace StyleStar
         {
             return new Rectangle(rect.X + x, rect.Y + y, rect.Width, rect.Height);
         }
+
+        public static double Dot(this Vector3 vect1, Vector3 vect2)
+        {
+            return vect1.X * vect2.X + vect1.Y * vect2.Y + vect1.Z * vect2.Z;
+        }
     }
 
     public enum Justification

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace StyleStar
 {
-    public class TouchCollection
+    public class TouchPoints
     {
         public List<TouchPoint> Points = new List<TouchPoint>();
 

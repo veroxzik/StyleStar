@@ -86,7 +86,7 @@ namespace StyleStar
             HitTexture = new QuadTexture(Globals.Textures["HitTexture"]);
         }
 
-        public void CheckHold(TouchCollection tc, double currentBeat)
+        public void CheckHold(TouchPoints tc, double currentBeat)
         {
             if (currentBeat < StartNote.BeatLocation)
             {

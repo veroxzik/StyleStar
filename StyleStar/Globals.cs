@@ -30,6 +30,8 @@ namespace StyleStar
 
         public static double CurrentBpm { get; set; }
 
+        public static double TotalGameMS { get; set; }
+
         public static Dictionary<string, Texture2D> Textures = new Dictionary<string, Texture2D>();
         public static BasicEffect Effect;
 
@@ -143,6 +145,7 @@ namespace StyleStar
         SongSelect,
         Loading,
         GamePlay,
-        Results
+        Results,
+        Calibration
     }
 }

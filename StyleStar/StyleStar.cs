@@ -1,11 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Input.Touch;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using System.IO;
+
 
 namespace StyleStar
 {
@@ -54,7 +56,7 @@ namespace StyleStar
         KeyboardState prevKbState;
         MouseState prevMouseState;
 
-        TouchCollection touchCollection = new TouchCollection();
+        TouchPoints touchCollection = new TouchPoints();
         MotionCollection motionCollection = new MotionCollection();
         GradeCollection gradeCollection = new GradeCollection();
 
@@ -68,6 +70,18 @@ namespace StyleStar
         Texture2D loadingScreenImageLL;
         Texture2D loadingScreenImageLR;
         Rectangle loadingScreenRect;
+
+        // Touch screen stuff
+        bool useTouch;
+        TouchCollection touchPointCollection;
+
+        // Kinect stuff
+        KinectTouch kinect = new KinectTouch();
+
+        // Calibration stuff
+        int calWait = 10000;    // 10 seconds between calibration times
+        double calStart;
+        CalibrationStage calStage;
 
         // Hit Debug
         double hitBeat = 0;
@@ -114,6 +128,26 @@ namespace StyleStar
             view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
 
             bgRect = new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+
+            // Read Kinect calibration file if it exists
+            kinect.ReadCalibrationFile("kinect.cal");
+
+#if WINDOWS_UAP
+            // HELLO
+            Console.WriteLine("UAP??");
+#elif WINDOWS
+            // HELLO??
+            Console.WriteLine("Windows??");
+#endif
+
+            var touchCap = TouchPanel.GetCapabilities();
+            useTouch = touchCap.IsConnected;
+            if (useTouch)
+            {
+                TouchPanel.EnableMouseTouchPoint = true;
+                TouchPanel.EnabledGestures = GestureType.Tap | GestureType.Hold | GestureType.FreeDrag | GestureType.DragComplete;
+                TouchPanel.EnableMouseGestures = true;
+            }
 
             base.Initialize();
         }
@@ -181,6 +215,8 @@ namespace StyleStar
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            Globals.TotalGameMS = gameTime.TotalGameTime.TotalMilliseconds;
+
             KeyboardState kbState = Keyboard.GetState();
             MouseState mouseState = Mouse.GetState();
 
@@ -189,6 +225,23 @@ namespace StyleStar
 
             if ((kbState.IsKeyDown(Keys.RightAlt) || kbState.IsKeyDown(Keys.LeftAlt)) && kbState.IsKeyDown(Keys.Enter) && !prevKbState.IsKeyDown(Keys.Enter))
                 graphics.ToggleFullScreen();
+
+            if (kbState.IsKeyDown(Keys.F1) && !prevKbState.IsKeyDown(Keys.F1))
+            {
+                currentMode = Mode.Calibration;
+                calStage = CalibrationStage.Start;
+            }
+
+            if (useTouch)
+                touchPointCollection = TouchPanel.GetState();
+
+            if(touchPointCollection.Count > 0)
+            {
+                foreach (var pt in touchPointCollection)
+                {
+                    Console.WriteLine(pt.Position.X + ", " + pt.Position.Y);
+                }
+            }
 
             switch (currentMode)
             {
@@ -218,6 +271,17 @@ namespace StyleStar
                         else
                             break;
                     }
+
+                    if (useTouch)
+                    {
+                        
+
+                        if (TouchPanel.IsGestureAvailable)
+                        {
+
+                        }
+                    }
+
                     if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down) || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
                     {
                         if (selectedFolderIndex == -1)
@@ -235,7 +299,7 @@ namespace StyleStar
                     }
 
                     if ((kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
-                        || (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed))
+                        || (!useTouch && (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed)))
                     {
                         if (selectedFolderIndex == -1)
                         {
@@ -243,7 +307,7 @@ namespace StyleStar
                             switch (folderParams[selectedFolderIndex].Type)
                             {
                                 case SortType.Alpha:
-                                    if(folderParams[selectedFolderIndex].Value == 0)
+                                    if (folderParams[selectedFolderIndex].Value == 0)
                                         songlist = songlist.OrderBy(x => x.Title).ToList();
                                     else
                                         songlist = songlist.OrderBy(x => x.Artist).ToList();
@@ -268,7 +332,7 @@ namespace StyleStar
                     }
 
                     if ((kbState.IsKeyDown(Keys.Escape) && !prevKbState.IsKeyDown(Keys.Escape)) || (kbState.IsKeyDown(Keys.Back) && !prevKbState.IsKeyDown(Keys.Back))
-                        || (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed))
+                        || (!useTouch && (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed)))
                     {
                         selectedFolderIndex = -1;
                         currentSongIndex = 0;
@@ -279,7 +343,7 @@ namespace StyleStar
                     break;
                 case Mode.GamePlay:
                     // If we're entering or leaving a loading screen, block other inputs
-                    if(enterLoadingScreen || leavingLoadingScreen)
+                    if (enterLoadingScreen || leavingLoadingScreen)
                     {
                         if (gameTime.TotalGameTime.TotalMilliseconds > (loadingScreenTime + loadingScreenTransition + loadingScreenWait))
                         {
@@ -322,6 +386,28 @@ namespace StyleStar
                     var motionList = new List<Note>(currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
                     motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
 
+                    // Touch screen controls
+                    if(useTouch)
+                    {
+                        //var touchCol = TouchPanel.GetState();
+                        //var width = TouchPanel.DisplayWidth;
+                        //foreach (var loc in touchCol)
+                        //{
+                        //    if (loc.State == TouchLocationState.Pressed)
+                        //        touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)(loc.Position.X / width) * 1024, RawY = 500, RawWidth = 128, RawHeight = 20, ID = loc.Id });
+                        //    else if (loc.State == TouchLocationState.Moved)
+                        //    {
+                        //        var pt = touchCollection.Points.Where(x => x.ID == loc.Id);
+                        //        if (pt.Count() > 0)
+                        //            pt.ElementAt(0).RawX = (int)(loc.Position.X / width) * 1024;
+                        //    }
+                        //    else if (loc.State == TouchLocationState.Released)
+                        //    {
+                        //        touchCollection.Points.RemoveAll(x => x.ID == loc.Id);
+                        //    }
+                        //}
+                    }
+
                     // Temporary keyboard inputs
                     for (int i = 0; i < 8; i++)
                     {
@@ -347,6 +433,44 @@ namespace StyleStar
                     if (kbState.IsKeyDown(Keys.Space) && !prevKbState.IsKeyDown(Keys.Space))
                         motionCollection.DownBeat = currentBeat;
 
+                    // Kinect inputs
+                    if (kinect.Points.Count >= 2)    // Right now it will only equal 0 or 2
+                    {
+                        if (kinect.Points[0].VState == VerticalState.InAir)
+                            touchCollection.RemoveID(0);
+                        else
+                        {
+                            var pt = touchCollection.Points.FirstOrDefault(x => x.ID == 0);
+                            if (pt != null)
+                                pt.RawX = (int)kinect.Points[0].X;
+                            else
+                                touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)kinect.Points[0].X, RawY = 500, RawWidth = 128, RawHeight = 20, ID = 0 });
+                        }
+
+                        if (kinect.Points[1].VState == VerticalState.InAir)
+                            touchCollection.RemoveID(1);
+                        else
+                        {
+                            var pt = touchCollection.Points.FirstOrDefault(x => x.ID == 1);
+                            if (pt != null)
+                                pt.RawX = (int)kinect.Points[1].X;
+                            else
+                                touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)kinect.Points[1].X, RawY = 500, RawWidth = 128, RawHeight = 20, ID = 1 });
+                        }
+
+                        //if (touchCollection.Points.Count < 1)
+                        //    touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)kinect.Points[0].X, RawY = 500, RawWidth = 128, RawHeight = 20, ID = 0 });
+                        //else
+                        //    touchCollection.Points[0].RawX = (int)kinect.Points[0].X;
+
+                        //if(touchCollection.Points.Count < 2)
+                        //    touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)kinect.Points[1].X, RawY = 500, RawWidth = 128, RawHeight = 20, ID = 1 });
+                        //else
+                        //    touchCollection.Points[1].RawX = (int)kinect.Points[1].X;
+                    }
+                    else
+                        touchCollection.Points.Clear();
+
                     // Check if we've hit any steps
                     foreach (var step in stepList)
                     {
@@ -368,10 +492,10 @@ namespace StyleStar
                     foreach (var hold in holdList)
                     {
                         // Check start note if necessary
-                        if(!hold.StartNote.HitResult.WasHit)
+                        if (!hold.StartNote.HitResult.WasHit)
                         {
                             var stepTimeMS = ((hold.StartNote.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
-                            if(stepTimeMS < -NoteTiming.Bad)
+                            if (stepTimeMS < -NoteTiming.Bad)
                             {
                                 hold.StartNote.HitResult.WasHit = true; // Let everyone else know this note has been resolved
                                 hold.StartNote.HitResult.Difference = Timing.MissFlag;
@@ -398,7 +522,7 @@ namespace StyleStar
                     foreach (var motion in motionList)
                     {
                         var motionTimeMS = ((motion.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
-                        if(motionTimeMS < -MotionTiming.Miss)
+                        if (motionTimeMS < -MotionTiming.Miss)
                         {
                             motion.HitResult.WasHit = true;
                             motion.HitResult.Difference = Timing.MissFlag;
@@ -508,6 +632,53 @@ namespace StyleStar
                     {
                         enterLoadingScreen = true;
                         loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                    }
+                    break;
+                case Mode.Calibration:
+                    if (calStage == CalibrationStage.Start)
+                    {
+                        if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
+                        {
+                            kinect.SetCal(CalibrationStage.Start);  // Clear cal flag
+                            calStage = CalibrationStage.FrontLeft;
+                            calStart = gameTime.TotalGameTime.TotalMilliseconds;
+                        }
+                    }
+                    else if (calStage == CalibrationStage.Finish)
+                    {
+                        if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
+                        {
+                            kinect.WriteCalibrationFile("kinect.cal");
+                            currentMode = Mode.SongSelect;
+                        }
+                    }
+                    else
+                    {
+                        if((gameTime.TotalGameTime.TotalMilliseconds - calStart) > calWait)
+                        {
+
+                            if(kinect.SetCal(calStage))
+                            {
+                                switch (calStage)
+                                {
+                                    case CalibrationStage.FrontLeft:
+                                        calStage = CalibrationStage.FrontRight;
+                                        break;
+                                    case CalibrationStage.FrontRight:
+                                        calStage = CalibrationStage.BackLeft;
+                                        break;
+                                    case CalibrationStage.BackLeft:
+                                        calStage = CalibrationStage.BackRight;
+                                        break;
+                                    case CalibrationStage.BackRight:
+                                        calStage = CalibrationStage.Finish;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                            calStart = gameTime.TotalGameTime.TotalMilliseconds;
+                        }
                     }
                     break;
                 default:
@@ -705,8 +876,65 @@ namespace StyleStar
                     if (enterLoadingScreen || leavingLoadingScreen)
                         DrawLoadingTransition(gameTime);
                     break;
+                case Mode.Calibration:
+                    GraphicsDevice.Clear(Color.Black);
+                    double remainingTime = (calWait - (gameTime.TotalGameTime.TotalMilliseconds - calStart)) / 1000;
+                    spriteBatch.Begin();
+                    switch (calStage)
+                    {
+                        case CalibrationStage.Start:
+                            spriteBatch.DrawString(debugFont, "Press ENTER to begin calibration", new Vector2(200, 200), Color.White);
+                            break;
+                        case CalibrationStage.FrontLeft:
+                            spriteBatch.DrawString(debugFont, "Stand facing the kinect in the front left position (Time: " + remainingTime.ToString("F3") + ")", new Vector2(200, 200), Color.White);
+                            break;
+                        case CalibrationStage.FrontRight:
+                            spriteBatch.DrawString(debugFont, "Stand facing the kinect in the front right position (Time: " + remainingTime.ToString("F3") + ")", new Vector2(200, 200), Color.White);
+                            break;
+                        case CalibrationStage.BackLeft:
+                            spriteBatch.DrawString(debugFont, "Stand facing the kinect in the back left position (Time: " + remainingTime.ToString("F3") + ")", new Vector2(200, 200), Color.White);
+                            break;
+                        case CalibrationStage.BackRight:
+                            spriteBatch.DrawString(debugFont, "Stand facing the kinect in the back right position (Time: " + remainingTime.ToString("F3") + ")", new Vector2(200, 200), Color.White);
+                            break;
+                        case CalibrationStage.Finish:
+                            spriteBatch.DrawString(debugFont, "Press ENTER to leave calibration and overwrite your previous file", new Vector2(200, 200), Color.White);
+                            break;
+                        default:
+                            break;
+                    }
+                    spriteBatch.End();
+                    break;
                 default:
                     break;
+            }
+
+            // Draw Kinect status
+            if (true)
+            {
+                spriteBatch.Begin();
+                if (kinect.IsCalibrated)
+                {
+                    string printout = "Kinect is calibrated\n" + kinect.GetCalReadout();
+                    if(kinect.Points.Count == 2)
+                    {
+                        //printout += "\nLeft Foot  X: " + kinect.LastLeftAnkleRaw.X + ", Y: " + kinect.LastLeftAnkleRaw.Y + ", Depth: " + kinect.LastLeftAnkleRaw.Depth;
+                        //printout += "\nLEFT KNEE ANGLE: " + kinect.Points[0].KneeAngle.ToString("F2");
+                        //printout += "\nLEFT RATIO: " + kinect.LeftAnkleRatio.ToString("F3");
+                        //printout += "\nRight Foot  X: " + kinect.LastRightAnkleRaw.X + ", Y: " + kinect.LastRightAnkleRaw.Y + ", Depth: " + kinect.LastRightAnkleRaw.Depth;
+                        //printout += "\nRIGHT KNEE ANGLE: " + kinect.Points[1].KneeAngle.ToString("F2");
+                        //printout += "\nRIGHT RATIO: " + kinect.RightAnkleRatio.ToString("F3");
+
+                        printout += "\nLeFt Foot Y: " + kinect.LastSkeleton.Joints[Microsoft.Kinect.JointType.AnkleLeft].Position.Y.ToString("F2");
+                        printout += "\nRight Foot Y: " + kinect.LastSkeleton.Joints[Microsoft.Kinect.JointType.AnkleRight].Position.Y.ToString("F2");
+                        printout += "\nFloor Z: " + kinect.FloorZ.ToString("F2");
+                    }
+
+                    spriteBatch.DrawString(debugFont, printout, new Vector2(10, 10), Color.Chartreuse);
+                }
+                else
+                    spriteBatch.DrawString(debugFont, "Kinect is NOT calibrated", new Vector2(10, 10), Color.Red);
+                spriteBatch.End();
             }
 
             base.Draw(gameTime);
