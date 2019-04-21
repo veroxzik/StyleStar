@@ -84,22 +84,29 @@ namespace StyleStar
                 SongSelection.ArtistRect.Height);
 
             Rectangle levelTextRect = new Rectangle(
-                x + SongSelection.DifficultRect.X,
-                y + SongSelection.DifficultRect.Y,
-                SongSelection.DifficultRect.Width - 10,
-                40);
+                x + 278,
+                y + 32,
+                40,
+                30);
 
             sb.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-            sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.DarkGray);
+            //sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.DarkGray);
+            if (index == 0)
+                sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.Yellow);
+            else
+                sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), ThemeColors.FolderBGColor);
+            sb.Draw(Globals.Textures["SsMainFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), ThemeColors.FolderBGColor);
             sb.Draw(AlbumImage, new Rectangle(x + SongSelection.AlbumPoint.X, y + SongSelection.AlbumPoint.Y, SongSelection.AlbumSize, SongSelection.AlbumSize), Color.White);
-            sb.Draw(Globals.Textures["SongDifficulty"], new Rectangle(x + SongSelection.DifficultRect.X, y + SongSelection.DifficultRect.Y, SongSelection.DifficultRect.Width, SongSelection.DifficultRect.Height), Color.Green);
-            Util.DrawString(sb, Globals.Font["Bold"], Level.ToString(), levelTextRect.Shift(1, 1), Color.Black);
+            //sb.Draw(Globals.Textures["SongDifficulty"], new Rectangle(x + SongSelection.DifficultRect.X, y + SongSelection.DifficultRect.Y, SongSelection.DifficultRect.Width, SongSelection.DifficultRect.Height), Color.Green);
+            sb.Draw(Globals.Textures["SsAlbumFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), ThemeColors.FolderBGColor);
+            sb.Draw(Globals.Textures["SsDifficultyFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.Green);
+            //Util.DrawString(sb, Globals.Font["Bold"], Level.ToString(), levelTextRect.Shift(1, 1), Color.Black);
             Util.DrawString(sb, Globals.Font["Bold"], Level.ToString(), levelTextRect, Color.White);
-            sb.DrawString(Globals.Font["Bold"], "LEVEL", new Vector2(levelTextRect.X + 5 + 1, levelTextRect.Y + 105 - 1), Color.Black, (float)-Math.PI / 2, new Vector2(0, 0), 0.12f, new SpriteEffects(), 0);
-            sb.DrawString(Globals.Font["Bold"], "LEVEL", new Vector2(levelTextRect.X + 5, levelTextRect.Y + 105), Color.White, (float)-Math.PI / 2, new Vector2(0, 0), 0.12f, new SpriteEffects(), 0);
-            Util.DrawString(sb, Globals.Font["Regular"], Title, tempTitleRect.Shift(1, 1), Color.Black);
+            //sb.DrawString(Globals.Font["Bold"], "LEVEL", new Vector2(levelTextRect.X + 5 + 1, levelTextRect.Y + 105 - 1), Color.Black, (float)-Math.PI / 2, new Vector2(0, 0), 0.12f, new SpriteEffects(), 0);
+            sb.DrawString(Globals.Font["Bold"], "LVL", new Vector2(levelTextRect.X, levelTextRect.Y + 75), Color.White, (float)-Math.PI / 2, new Vector2(0, 0), 0.12f, new SpriteEffects(), 0);
+            //Util.DrawString(sb, Globals.Font["Regular"], Title, tempTitleRect.Shift(1, 1), Color.Black);
             Util.DrawString(sb, Globals.Font["Regular"], Title, tempTitleRect, Color.White);
-            Util.DrawString(sb, Globals.Font["Regular"], Artist, tempArtistRect.Shift(1, 1), Color.Black);
+            //Util.DrawString(sb, Globals.Font["Regular"], Artist, tempArtistRect.Shift(1, 1), Color.Black);
             Util.DrawString(sb, Globals.Font["Regular"], Artist, tempArtistRect, Color.White);
             sb.End();
         }

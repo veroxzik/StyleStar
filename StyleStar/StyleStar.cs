@@ -546,10 +546,11 @@ namespace StyleStar
                 case Mode.SongSelect:
                     GraphicsDevice.Clear(Color.Black);
                     spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-                    spriteBatch.Draw(Globals.Textures["SongSelectionBG"], new Vector2(0, 0), Color.White);
+                    //spriteBatch.Draw(Globals.Textures["SongSelectionBG"], new Vector2(0, 0), Color.White);
+                    spriteBatch.Draw(Globals.Textures["SsArrow"], new Vector2(230, 20), Color.Chartreuse);
                     spriteBatch.End();
 
-                    SongSelection.DrawSelectionFrame(spriteBatch);
+                    // SongSelection.DrawSelectionFrame(spriteBatch);
 
 
                     for (int i = 0; i < folderParams.Count; i++)

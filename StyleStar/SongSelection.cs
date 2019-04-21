@@ -12,22 +12,22 @@ namespace StyleStar
     {
         // Constants for song selection
         public static int BgHeight = 120;
-        public static int BgWidth = 333;
+        public static int BgWidth = 345;
         public static int BgBuffer = 5;
-        public static int AlbumSize = BgHeight - BgBuffer * 2;
+        public static int AlbumSize = 82;
 
         public static int RowOffset = 32;
 
         public static Point StartPoint = new Point(360, 250);
-        public static Point AlbumPoint = new Point(135, (BgHeight - AlbumSize) / 2);
+        public static Point AlbumPoint = new Point(189, 30);
 
-        public static Rectangle TitleRect = new Rectangle(25, 50, 105, 60);
-        public static Rectangle ArtistRect = new Rectangle(40, 10, 90, 25);
+        public static Rectangle TitleRect = new Rectangle(35, 55, 140, 80);
+        public static Rectangle ArtistRect = new Rectangle(50, 20, 130, 40);
 
-        public static Rectangle FolderCatRect = new Rectangle(40, 6, 130, 30);
-        public static Rectangle FolderNameRect = new Rectangle(45, 60, 245, 55);
+        public static Rectangle FolderCatRect = new Rectangle(56, 31, 130, 28);
+        public static Rectangle FolderNameRect = new Rectangle(60, 64, 230, 52);
 
-        public static Rectangle DifficultRect = new Rectangle(252, BgBuffer, 72, BgHeight - BgBuffer * 2);
+        //public static Rectangle DifficultRect = new Rectangle(252, BgBuffer, 72, BgHeight - BgBuffer * 2);
 
         public static void DrawSelectionFrame(SpriteBatch sb)
         {
@@ -58,20 +58,31 @@ namespace StyleStar
             sb.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
             if (category == null || name == null)
             {
-                sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.InactiveSelectionColor);
+                //sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.InactiveSelectionColor);
+                sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.InactiveSelectionColor);
+                sb.Draw(Globals.Textures["SsMainFrame"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.InactiveSelectionColor);
+
             }
             else
             {
-                sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColor);
-                sb.Draw(Globals.Textures["FolderOverlay"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColorSub);
-                Util.DrawString(sb, Globals.Font["Bold"], category, tempFolderCatRect.Shift(2, 2), Color.Black);
+                //sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColor);
+                //sb.Draw(Globals.Textures["FolderOverlay"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColorSub);
+                if(index == 0)
+                    sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, BgWidth, BgHeight), Color.Yellow);
+                else
+                    sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColor);
+                sb.Draw(Globals.Textures["SsMainFrame"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColor);
+                sb.Draw(Globals.Textures["SsFolderFrame"], new Rectangle(x, y, BgWidth, BgHeight), ThemeColors.FolderBGColorSub);
+                //Util.DrawString(sb, Globals.Font["Bold"], category, tempFolderCatRect.Shift(2, 2), Color.Black);
                 Util.DrawString(sb, Globals.Font["Bold"], category, tempFolderCatRect, Color.White);
-                Util.DrawString(sb, Globals.Font["Bold"], name, tempFolderNameRect.Shift(2, 2), Color.Black);
+                //Util.DrawString(sb, Globals.Font["Bold"], name, tempFolderNameRect.Shift(2, 2), Color.Black);
                 Util.DrawString(sb, Globals.Font["Bold"], name, tempFolderNameRect, Color.White);
             }
             // If this is inactive, add a grayed out overlay to all nonzero index entries
             if (!active && index != 0)
-                sb.Draw(Globals.Textures["SongBG"], new Rectangle(x - 1, y, BgWidth + 2, BgHeight), Color.Lerp(Color.Black, Color.Transparent, 0.1f));
+                //sb.Draw(Globals.Textures["SongBG"], new Rectangle(x - 1, y, BgWidth + 2, BgHeight), Color.Lerp(Color.Black, Color.Transparent, 0.1f));
+                sb.Draw(Globals.Textures["SsMask"], new Rectangle(x, y, BgWidth, BgHeight), Color.Lerp(Color.Black, Color.Transparent, 0.1f));
+
             sb.End();
         }
     }

@@ -109,6 +109,14 @@ namespace StyleStar
             Textures["SongDifficulty"] = ContentManager.Load<Texture2D>("SongDifficulty");
             Textures["FolderOverlay"] = ContentManager.Load<Texture2D>("FolderOverlay");
 
+            Textures["SsOuterFrame"] = ContentManager.Load<Texture2D>("SongSelection_OuterFrame");
+            Textures["SsMainFrame"] = ContentManager.Load<Texture2D>("SongSelection_MainFrame");
+            Textures["SsDifficultyFrame"] = ContentManager.Load<Texture2D>("SongSelection_DifficultyFrame");
+            Textures["SsAlbumFrame"] = ContentManager.Load<Texture2D>("SongSelection_AlbumFrame");
+            Textures["SsFolderFrame"] = ContentManager.Load<Texture2D>("SongSelection_FolderFrame");
+            Textures["SsArrow"] = ContentManager.Load<Texture2D>("SongSelection_Arrow");
+            Textures["SsMask"] = ContentManager.Load<Texture2D>("SongSelection_Mask");
+
             Effect = new BasicEffect(GraphicsManager.GraphicsDevice);
         }
     }
