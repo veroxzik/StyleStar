@@ -15,6 +15,7 @@ namespace StyleStar
         public List<Note> Steps { get; private set; } = new List<Note>();
         public List<Hold> Holds { get; private set; } = new List<Hold>();
         public List<Note> Motions { get; private set; } = new List<Note>();
+        public List<BeatMarker> Markers { get; private set; } = new List<BeatMarker>();
 
         public NoteCollection()
         {
@@ -86,7 +87,7 @@ namespace StyleStar
                                 case 3: // End a hold note with a shuffle
                                     Holds[holdIDlist[parsed.NoteIdentifier]].AddNote(
                                         new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, side) { Type = NoteType.Shuffle });
-                                    holdIDlist.Remove(parsed.NoteIdentifier);
+                                    holdIDlist.Remove(parsed.NoteIdentifier);   // Can't remove hold notes until all lines of that measure has been parsed
                                     break;
                                 case 4: // Add a midpoint with no shuffle
                                     Holds[holdIDlist[parsed.NoteIdentifier]].AddNote(
@@ -117,6 +118,16 @@ namespace StyleStar
                     }
                 }
             }
+
+            // Add Beat Markers
+            var noteLast = Steps.Count > 0 ? Steps.Max(x => x.BeatLocation) : 0;
+            var holdLast = Holds.Count > 0 ? Holds.Max(x => x.Notes.Max(y => y.BeatLocation)) : 0;
+            var motionLast = Motions.Count > 0 ? Motions.Max(x => x.BeatLocation) : 0;
+            double lastBeat = Math.Max(noteLast, holdLast);
+            lastBeat = Math.Ceiling(Math.Max(lastBeat, motionLast));
+            for (int i = 0; i <= (int)lastBeat; i+= 4)
+                Markers.Add(new BeatMarker(i));
+
             return Metadata;
         }
 
@@ -128,6 +139,8 @@ namespace StyleStar
                 hold.PreloadTexture();
             foreach (var step in Steps)
                 step.PreloadTexture();
+            foreach (var marker in Markers)
+                marker.PreloadTexture();
         }
 
         private NoteParse ParseLine(string line)
@@ -143,7 +156,8 @@ namespace StyleStar
             parse.NoteClass = Convert.ToInt32(meta.Substring(4, 1));
             parse.LaneIndex = Convert.ToInt32(meta.Substring(5, 1), 16);
             if (meta.Length == 7)
-                parse.NoteIdentifier = Convert.ToInt32(line.Substring(6, 1)[0]) - 'A';
+                //parse.NoteIdentifier = Convert.ToInt32(line.Substring(6, 1)[0]) - 'A';
+                parse.NoteIdentifier = ParseAlphanumeric(line.Substring(6, 1));
             else
                 parse.NoteIdentifier = -1;
 
@@ -162,6 +176,14 @@ namespace StyleStar
             public int LaneIndex;
             public int NoteIdentifier;
             public List<Tuple<int, int>> Notes;
+        }
+
+        private int ParseAlphanumeric(string s)
+        {
+            if (Regex.IsMatch(s, "[0-9]"))
+                return Convert.ToInt32(s);
+            else
+                return Convert.ToInt32(s.ToLower()[0]) - 'a' + 10;
         }
 
         private int ParseNoteWidth(string s)

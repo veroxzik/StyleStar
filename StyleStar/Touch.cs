@@ -28,7 +28,8 @@ namespace StyleStar
             validPoints.Sort((x, y) => Math.Abs(x.Beat - note.BeatLocation).CompareTo(Math.Abs(y.Beat - note.BeatLocation)));
 
             // Use the closest point and get the time difference
-            float diffMS = (float)(((note.BeatLocation - validPoints.First().Beat) * 60 / Globals.CurrentBpm));
+            //float diffMS = (float)(((note.BeatLocation - validPoints.First().Beat) * 60 / Globals.CurrentBpm));
+            float diffMS = (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(validPoints.First().Beat));
             if (diffMS > NoteTiming.Bad) // Too soon to hit, just leave
                 return false;
     

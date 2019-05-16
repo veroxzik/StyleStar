@@ -17,7 +17,8 @@ namespace StyleStar
 
 
         public static double BeatToWorldXUnits { get; set; } = 3;
-        public static double BeatToWorldYUnits { get; set; } = 32;
+        public static double Beat120ToWorldYUnits { get; set; } = 32;
+        public static double SpeedScale { get; set; } = 1.0;
         public static double StepNoteHeightOffset { get; set; } = 5;
         public static double ShuffleNoteHeightOffset { get; set; } = 7.5;
         public static double ShuffleXOffset { get; set; } = 0.7;
@@ -25,10 +26,12 @@ namespace StyleStar
         public static float OverlapMultplier { get; set; } = -0.02f;
         public static int NumLanes = 16;
         public static float GradeZoneWidth { get; set; } = 48f;
+        public static float NoteLaneAccentWidth { get; set; } = 3f;
 
         public static float FootWidth { get; set; } = 4f;
 
-        public static double CurrentBpm { get; set; }
+        // public static double CurrentBpm { get; set; }
+        public static List<BpmChangeEvent> BpmEvents { get; set; }
 
         public static Dictionary<string, Texture2D> Textures = new Dictionary<string, Texture2D>();
         public static BasicEffect Effect;
@@ -78,6 +81,54 @@ namespace StyleStar
             return (index - NumLanes / 2 + del) * BeatToWorldXUnits;
         }
 
+        public static double GetDistAtBeat(double beat)
+        {
+            // Determine which BPM change we're on (if any)
+            var evt = BpmEvents.Where(x => beat >= x.StartBeat).LastOrDefault();
+            if (evt == null)
+                evt = BpmEvents[0];
+
+            double curDist = 0;
+            if(evt.StartBeat > 0)
+            {
+                // Add up all the distance prior
+                for (int i = 0; i < BpmEvents.Count; i++)
+                {
+                    if (BpmEvents[i].StartBeat == evt.StartBeat)
+                        i = BpmEvents.Count;
+                    else
+                    {
+                        curDist += (BpmEvents[i + 1].StartBeat - BpmEvents[i].StartBeat) * Beat120ToWorldYUnits * 120 / BpmEvents[i].BPM * SpeedScale;
+                    }
+                }
+            }
+
+            return curDist + (beat - evt.StartBeat) * Beat120ToWorldYUnits * 120 / evt.BPM * SpeedScale;
+        }
+
+        public static double GetSecAtBeat(double beat)
+        {
+            // Determine which BPM change we're on (if any)
+            var evt = BpmEvents.Where(x => beat >= x.StartBeat).LastOrDefault();
+            if (evt == null)
+                evt = BpmEvents[0];
+
+            //double curTime = 0;
+            //if (evt.StartBeat > 0)
+            //{
+            //    // Add up all the time prior
+            //    for (int i = 0; i < BpmEvents.Count; i++)
+            //    {
+            //        if (BpmEvents[i].StartBeat == evt.StartBeat)
+            //            i = BpmEvents.Count;
+            //        else
+            //            curTime = BpmEvents[i + 1].StartSeconds;
+            //    }
+            //}
+
+            return evt.StartSeconds + ((beat - evt.StartBeat) / evt.BPM * 60);
+        }
+
         public static void LoadTextures()
         {
             Textures["StepLeft"] = ContentManager.Load<Texture2D>("StepLeft");
@@ -95,6 +146,7 @@ namespace StyleStar
             Textures["FootLeft"] = ContentManager.Load<Texture2D>("FootLeft");
             Textures["FootRight"] = ContentManager.Load<Texture2D>("FootRight");
             Textures["FootHold"] = ContentManager.Load<Texture2D>("FootHold");
+            Textures["BeatMark"] = ContentManager.Load<Texture2D>("BeatMarker");
 
             Textures["PerfectGrade"] = ContentManager.Load<Texture2D>("PerfectGrade");
             Textures["GreatGrade"] = ContentManager.Load<Texture2D>("GreatGrade");
@@ -116,6 +168,8 @@ namespace StyleStar
             Textures["SsFolderFrame"] = ContentManager.Load<Texture2D>("SongSelection_FolderFrame");
             Textures["SsArrow"] = ContentManager.Load<Texture2D>("SongSelection_Arrow");
             Textures["SsMask"] = ContentManager.Load<Texture2D>("SongSelection_Mask");
+
+            Textures["GpLowerBG"] = ContentManager.Load<Texture2D>("Gameplay_LowerBG");
 
             Effect = new BasicEffect(GraphicsManager.GraphicsDevice);
         }

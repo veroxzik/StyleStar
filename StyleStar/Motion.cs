@@ -19,7 +19,8 @@ namespace StyleStar
 
             float diffMS = -999.0f;
             var beatCheck = note.Motion == Motion.Up ? JumpBeat : DownBeat;
-            diffMS = (float)(((note.BeatLocation - beatCheck) * 60 / Globals.CurrentBpm));
+            //diffMS = (float)(((note.BeatLocation - beatCheck) * 60 / Globals.CurrentBpm));
+            diffMS = (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(beatCheck));
             if (diffMS > MotionTiming.EarlyPerfect) // Too soon to hit
                 return false;
 

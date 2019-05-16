@@ -27,7 +27,7 @@ namespace StyleStar
         private Matrix projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 800 / 480f, 0.1f, 300f);
 
         QuadTexture gradeZone;
-        QuadTexture noteLanes;
+        QuadTexture noteLanes, noteLaneAccent1l, noteLaneAccent1r, noteLaneAccent2l, noteLaneAccent2r;
         Texture2D background;
         Rectangle bgRect;
 
@@ -90,6 +90,10 @@ namespace StyleStar
             Globals.ContentManager = Content;
             Globals.GraphicsManager = graphics;
 
+            this.graphics.SynchronizeWithVerticalRetrace = false;
+            base.IsFixedTimeStep = false;
+
+
             //this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
         }
 
@@ -108,8 +112,6 @@ namespace StyleStar
             graphics.GraphicsProfile = GraphicsProfile.HiDef;
             GraphicsDevice.PresentationParameters.MultiSampleCount = 8;
             graphics.ApplyChanges();
-
-            IsFixedTimeStep = false;
 
             view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
 
@@ -134,6 +136,14 @@ namespace StyleStar
             gradeZone.SetVerts(Globals.GradeZoneWidth / 2, -(Globals.GradeZoneWidth / 2), (float)-Globals.StepNoteHeightOffset, Globals.GradeZoneWidth / 2, -(Globals.GradeZoneWidth / 2), (float)Globals.StepNoteHeightOffset, -0.12f);
             noteLanes = new QuadTexture(Content.Load<Texture2D>("NoteLanes"));
             noteLanes.SetVerts(Globals.GradeZoneWidth / 2, -(Globals.GradeZoneWidth / 2), -20, Globals.GradeZoneWidth / 2, -(Globals.GradeZoneWidth / 2), 300, -0.15f);
+            noteLaneAccent1l = new QuadTexture(Content.Load<Texture2D>("NoteLaneAccent1"));
+            noteLaneAccent1l.SetVerts(Globals.GradeZoneWidth / 2 + Globals.NoteLaneAccentWidth, Globals.GradeZoneWidth / 2, -20, Globals.GradeZoneWidth / 2 + Globals.NoteLaneAccentWidth, Globals.GradeZoneWidth / 2, 300, -0.15f);
+            noteLaneAccent1r = new QuadTexture(Content.Load<Texture2D>("NoteLaneAccent1"));
+            noteLaneAccent1r.SetVerts(-Globals.GradeZoneWidth / 2, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth, -20, -Globals.GradeZoneWidth / 2, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth, 300, -0.15f);
+            noteLaneAccent2l = new QuadTexture(Content.Load<Texture2D>("NoteLaneAccent2"));
+            noteLaneAccent2l.SetVerts(Globals.GradeZoneWidth / 2 + Globals.NoteLaneAccentWidth * 2, Globals.GradeZoneWidth / 2 + Globals.NoteLaneAccentWidth, -20, Globals.GradeZoneWidth / 2 + Globals.NoteLaneAccentWidth * 2, Globals.GradeZoneWidth / 2 + Globals.NoteLaneAccentWidth, 300, -0.15f);
+            noteLaneAccent2r = new QuadTexture(Content.Load<Texture2D>("NoteLaneAccent2"));
+            noteLaneAccent2r.SetVerts(-Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth * 2, -20, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth * 2, 300, -0.15f);
             background = Content.Load<Texture2D>("Background");
             loadingScreenImageUL = Content.Load<Texture2D>("LoadingScreenUL");
             loadingScreenImageUR = Content.Load<Texture2D>("LoadingScreenUR");
@@ -146,6 +156,7 @@ namespace StyleStar
             Globals.Font.Add("Bold", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Bold"));
             Globals.Font.Add("Italic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Italic"));
             Globals.Font.Add("BoldItalic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-BoldItalic"));
+            Globals.Font.Add("Franklin", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
 
             // Load songs
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -153,9 +164,12 @@ namespace StyleStar
             foreach (var folder in folders)
             {
                 var files = folder.EnumerateFiles();
-                var chart = files.FirstOrDefault(f => f.FullName.EndsWith(".sus"));
-                if(chart != null)
-                    songlist.Add(new SongMetadata(chart.FullName));
+                var charts = files.Where(f => f.FullName.EndsWith(".ssf"));
+                if (charts != null && charts.Count() > 0)
+                {
+                    foreach (var chart in charts)
+                        songlist.Add(new SongMetadata(chart.FullName));
+                }
             }
             folderParams.Add(new FolderParams() { Type = SortType.Alpha, Value = 0, Category = "BY TITLE", Name = "ALL SONGS" });
             folderParams.Add(new FolderParams() { Type = SortType.Alpha, Value = 1, Category = "BY ARTIST", Name = "ALL SONGS" });
@@ -218,6 +232,15 @@ namespace StyleStar
                         else
                             break;
                     }
+
+                    // TEMP FOR TESTING
+                    //LoadSong(songlist[6]);
+                    ////currentMode = Mode.GamePlay;
+                    //enterLoadingScreen = true;
+                    //loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                    // END TEMP
+
+
                     if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down) || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
                     {
                         if (selectedFolderIndex == -1)
@@ -296,6 +319,10 @@ namespace StyleStar
                             {
                                 leavingLoadingScreen = false;
                                 musicManager.Play();
+
+                                // Reset inputs
+                                motionCollection.DownBeat = double.NaN;
+                                motionCollection.JumpBeat = double.NaN;
                             }
                         }
                         else
@@ -312,6 +339,7 @@ namespace StyleStar
 
                     // Steps, which will hopefully move to an HID event class later
                     var currentBeat = hitBeat = musicManager.GetCurrentBeat();
+                    var currentTime = Globals.GetSecAtBeat(currentBeat);
                     var stepList = new List<Note>(currentSongNotes.Steps.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
                     stepList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
 
@@ -337,8 +365,11 @@ namespace StyleStar
                         }
                         else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
                         {
-                            touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
-                            KeyDictionary.Remove(touchkeys[i]);
+                            if (touchCollection.Points.Count(pt => pt.ID == KeyDictionary[touchkeys[i]]) > 0)
+                            {
+                                touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
+                                KeyDictionary.Remove(touchkeys[i]);
+                            }
 
                             if (touchCollection.Points.Count == 0)
                                 motionCollection.JumpBeat = currentBeat;
@@ -351,7 +382,8 @@ namespace StyleStar
                     foreach (var step in stepList)
                     {
                         // First check to see if they've passed the miss mark
-                        var stepTimeMS = ((step.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
+                        //var stepTimeMS = ((step.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
+                        var stepTimeMS = Globals.GetSecAtBeat(step.BeatLocation) - currentTime;
                         if (stepTimeMS < -NoteTiming.Bad)
                         {
                             step.HitResult.WasHit = true;   // Let everyone else know this note has been resolved
@@ -370,8 +402,9 @@ namespace StyleStar
                         // Check start note if necessary
                         if(!hold.StartNote.HitResult.WasHit)
                         {
-                            var stepTimeMS = ((hold.StartNote.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
-                            if(stepTimeMS < -NoteTiming.Bad)
+                            //var stepTimeMS = ((hold.StartNote.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
+                            var stepTimeMS = Globals.GetSecAtBeat(hold.StartNote.BeatLocation) - currentTime;
+                            if (stepTimeMS < -NoteTiming.Bad)
                             {
                                 hold.StartNote.HitResult.WasHit = true; // Let everyone else know this note has been resolved
                                 hold.StartNote.HitResult.Difference = Timing.MissFlag;
@@ -397,8 +430,9 @@ namespace StyleStar
                     // Check if we've hit any motions
                     foreach (var motion in motionList)
                     {
-                        var motionTimeMS = ((motion.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
-                        if(motionTimeMS < -MotionTiming.Miss)
+                        //var motionTimeMS = ((motion.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
+                        var motionTimeMS = Globals.GetSecAtBeat(motion.BeatLocation) - currentTime;
+                        if (motionTimeMS < -MotionTiming.Miss)
                         {
                             motion.HitResult.WasHit = true;
                             motion.HitResult.Difference = Timing.MissFlag;
@@ -424,10 +458,12 @@ namespace StyleStar
                     }
 
                     if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down))
-                        Globals.BeatToWorldYUnits /= 2;
+                        //Globals.BeatToWorldYUnits /= 2;
+                        Globals.SpeedScale -= 0.5;
 
                     if (kbState.IsKeyDown(Keys.Up) && !prevKbState.IsKeyDown(Keys.Up))
-                        Globals.BeatToWorldYUnits *= 2;
+                        //Globals.BeatToWorldYUnits *= 2;
+                        Globals.SpeedScale += 0.5;
 
                     if (kbState.IsKeyDown(Keys.Delete) && !prevKbState.IsKeyDown(Keys.Delete))
                         drawRateMin = float.PositiveInfinity;
@@ -608,6 +644,10 @@ namespace StyleStar
 
 
                     noteLanes.Draw(view, projection);
+                    noteLaneAccent1l.Draw(view, projection);
+                    noteLaneAccent1r.Draw(view, projection);
+                    noteLaneAccent2l.Draw(view, projection);
+                    noteLaneAccent2r.Draw(view, projection);
                     gradeZone.Draw(view, projection);
 
                     if (enableProfiling)
@@ -619,9 +659,14 @@ namespace StyleStar
                         var motions = currentSongNotes.Motions.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
                         var holds = currentSongNotes.Holds.Where(p => p.StartNote.BeatLocation > currentBeat - 6 && p.StartNote.BeatLocation < currentBeat + 16);
                         var notes = currentSongNotes.Steps.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
+                        var marks = currentSongNotes.Markers.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
 
                         if (enableProfiling)
                             log.AddEvent(stopwatch.ElapsedMilliseconds, "Lists generated");
+
+                        // Draw beat markers
+                        foreach (var mark in marks)
+                            mark.Draw(currentBeat, view, projection);
 
                         // Feet width lines are drawn first
                         // Then the feet icons
@@ -652,9 +697,9 @@ namespace StyleStar
                     if (drawFpsCounter)
                     {
                         spriteBatch.Begin();
-                        spriteBatch.DrawString(debugFont, "Update Rate: " + updateRate.ToString("F2"), new Vector2(10, 10), Color.Black);
-                        spriteBatch.DrawString(debugFont, "Draw Rate: " + drawRate.ToString("F2"), new Vector2(10, 30), Color.Black);
-                        spriteBatch.DrawString(debugFont, "Draw Rate: " + drawRateMin.ToString("F2"), new Vector2(10, 50), Color.Black);
+                        spriteBatch.DrawString(debugFont, "Update Rate: " + updateRate.ToString("F2"), new Vector2(10, 10), Color.White);
+                        spriteBatch.DrawString(debugFont, "Draw Rate: " + drawRate.ToString("F2"), new Vector2(10, 30), Color.White);
+                        spriteBatch.DrawString(debugFont, "Draw Rate: " + drawRateMin.ToString("F2"), new Vector2(10, 50), Color.White);
                         spriteBatch.End();
                     }
 
@@ -678,6 +723,17 @@ namespace StyleStar
                     // Draw Grades
                     spriteBatch.Begin();
                     gradeCollection.Draw(spriteBatch, gameTime);
+                    spriteBatch.End();
+
+                    // Draw UI elements
+                    spriteBatch.Begin();
+                    spriteBatch.Draw(Globals.Textures["GpLowerBG"], new Vector2(0, 599), Color.Black);
+                    float yTopRow = 625f;
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "SCROLL", new Vector2(50, yTopRow), Color.White, 0.08f, Justification.Center);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "ACCURACY", new Vector2(100, yTopRow), Color.White, 0.08f, Justification.Left);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "NORMAL", new Vector2(1200, yTopRow), Color.White, 0.08f, Justification.Center);
+                    float yBottomRow = 685f;
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "1.0", new Vector2(50, yBottomRow), Color.White, 0.2f, Justification.Center | Justification.Bottom);
                     spriteBatch.End();
 
                     // Draw hit stats

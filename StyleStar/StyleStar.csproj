@@ -46,9 +46,11 @@
     <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
     <Compile Include="Motion.cs" />
+    <Compile Include="BeatMarker.cs" />
     <Compile Include="QuadTexture.cs" />
     <Compile Include="ResultScreen.cs" />
     <Compile Include="SongSelection.cs" />
+    <Compile Include="BeatMarkerTexture.cs" />
     <Compile Include="StringExtensions.cs" />
     <Compile Include="StyleStar.cs" />
     <Compile Include="Globals.cs" />

@@ -55,8 +55,11 @@ namespace StyleStar
 
         private void SetVerts(double currentBeat)
         {
-            var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits + Globals.ShuffleNoteHeightOffset;
-            var y2 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits - Globals.ShuffleNoteHeightOffset;
+            //var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits + Globals.ShuffleNoteHeightOffset;
+            //var y2 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits - Globals.ShuffleNoteHeightOffset;
+            var curDist = Globals.GetDistAtBeat(currentBeat);
+            var y1 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist + Globals.ShuffleNoteHeightOffset;
+            var y2 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist - Globals.ShuffleNoteHeightOffset;
 
             var minXNote = parent.LaneIndex > prevNote.LaneIndex ? prevNote : parent;
             var maxXNote = parent.LaneIndex > prevNote.LaneIndex ? parent : prevNote;

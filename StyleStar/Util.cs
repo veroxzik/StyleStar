@@ -62,12 +62,35 @@ namespace StyleStar
         {
             return new Rectangle(rect.X + x, rect.Y + y, rect.Width, rect.Height);
         }
+
+        public static void DrawStringJustify(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float scale, Justification justification)
+        {
+            Vector2 size = font.MeasureString(text);
+            float xOffset = 0, yOffset = 0;
+            if (justification.HasFlag(Justification.Right))
+            {
+                xOffset = -size.X * scale;
+            }
+            else if (justification.HasFlag(Justification.Center))
+            {
+                xOffset = -size.X * scale / 2;
+            }
+            if (justification.HasFlag(Justification.Bottom))
+            {
+                yOffset = -size.Y * scale;
+            }
+            Vector2 offset = new Vector2(xOffset, yOffset);
+            sb.DrawString(font, text, position + offset, color, 0, new Vector2(0, 0), scale, new SpriteEffects(), 0);
+        }
     }
 
+    [Flags]
     public enum Justification
     {
         Left,
         Right,
-        Center
+        Center,
+        Top,
+        Bottom
     }
 }

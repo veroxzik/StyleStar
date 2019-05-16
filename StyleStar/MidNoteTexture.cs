@@ -42,8 +42,11 @@ namespace StyleStar
 
         private void SetVerts(double currentBeat)
         {
-            var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits;
-            var y2 = (prevNote.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits;
+            //var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits;
+            //var y2 = (prevNote.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits;
+            var curDist = Globals.GetDistAtBeat(currentBeat);
+            var y1 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist;
+            var y2 = Globals.GetDistAtBeat(prevNote.BeatLocation) - curDist;
 
             // Offset y's if the note is a step note
             //if (prevNote.Type == NoteType.Step)
