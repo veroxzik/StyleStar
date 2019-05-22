@@ -40,5 +40,6 @@ namespace StyleStar
         public static readonly float Miss = 1 / 60.0f * 40;
         public static readonly float EarlyPerfect = 1 / 60.0f * 2;
         public static readonly float Perfect = 1 / 60.0f * 10;
+        public static readonly float JumpPerfectCheck = 1 / 60.0f * 2;
     }
 }

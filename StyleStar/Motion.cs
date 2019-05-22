@@ -17,6 +17,11 @@ namespace StyleStar
             if (note.Motion == Motion.NotSet)
                 return false;
 
+            if (note.Motion == Motion.Up && double.IsNaN(JumpBeat))
+                return false;   // We can't check an UP against no jump
+            else if (note.Motion == Motion.Down && double.IsNaN(DownBeat))
+                return false;   // We can't check a DOWN against no down
+
             float diffMS = -999.0f;
             var beatCheck = note.Motion == Motion.Up ? JumpBeat : DownBeat;
             //diffMS = (float)(((note.BeatLocation - beatCheck) * 60 / Globals.CurrentBpm));

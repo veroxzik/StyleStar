@@ -394,6 +394,8 @@ namespace StyleStar
                     }
                     if (kbState.IsKeyDown(Keys.Space) && !prevKbState.IsKeyDown(Keys.Space))
                         motionCollection.DownBeat = currentBeat;
+                    else
+                        motionCollection.DownBeat = double.NaN;
 
                     // Check if we've hit any steps
                     foreach (var step in stepList)
@@ -454,10 +456,20 @@ namespace StyleStar
                             motion.HitResult.WasHit = true;
                             motion.HitResult.Difference = Timing.MissFlag;
                         }
-                        else if (!double.IsNaN(motionCollection.JumpBeat)) // Also down
+                        else if (motion.Motion == Motion.Down && !double.IsNaN(motionCollection.DownBeat))
                         {
                             if (motionCollection.CheckHit(motion))
                                 gradeCollection.Set(gameTime, motion);
+                        }
+                        else if (motion.Motion == Motion.Up && motionTimeMS < MotionTiming.JumpPerfectCheck)
+                        {
+                            // If there's no feet on the pad within the perfect window, it counts
+                            if(touchCollection.Points.Count == 0)
+                            {
+                                motion.HitResult.WasHit = true;
+                                motion.HitResult.Difference = (float)motionTimeMS;
+                                gradeCollection.Set(gameTime, motion);
+                            }
                         }
                     }
 
