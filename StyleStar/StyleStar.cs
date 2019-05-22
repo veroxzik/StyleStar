@@ -48,7 +48,9 @@ namespace StyleStar
         List<SongMetadata> songlist = new List<SongMetadata>();
         int currentSongIndex = 0;
         int currentFolderIndex = 0;
+        int currentLevelIndex = 0;
         int selectedFolderIndex = -1;
+        int selectedLevelIndex = -1;
         List<FolderParams> folderParams = new List<FolderParams>();
 
         KeyboardState prevKbState;
@@ -171,12 +173,9 @@ namespace StyleStar
                         songlist.Add(new SongMetadata(chart.FullName));
                 }
             }
-            folderParams.Add(new FolderParams() { Type = SortType.Alpha, Value = 0, Category = "BY TITLE", Name = "ALL SONGS" });
-            folderParams.Add(new FolderParams() { Type = SortType.Alpha, Value = 1, Category = "BY ARTIST", Name = "ALL SONGS" });
-            for (int i = 1; i <= 10; i++)
-            {
-                folderParams.Add(new FolderParams() { Type = SortType.Level, Value = i, Category = "DIFFICULTY", Name = "LEVEL " + i.ToString() });
-            }
+            folderParams.Add(new FolderParams() { Type = SortType.Title, Name = "SORT BY\nTITLE" });
+            folderParams.Add(new FolderParams() { Type = SortType.Artist, Name = "SORT BY\nARTIST" });
+            folderParams.Add(new FolderParams() { Type = SortType.Level, Name = "SORT BY\nLEVEL" });
         }
 
         /// <summary>
@@ -245,6 +244,8 @@ namespace StyleStar
                     {
                         if (selectedFolderIndex == -1)
                             currentFolderIndex = currentFolderIndex < (folderParams.Count - 1) ? ++currentFolderIndex : folderParams.Count - 1;
+                        else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
+                            currentLevelIndex = currentLevelIndex < 9 ? ++currentLevelIndex : 9;
                         else
                             currentSongIndex = currentSongIndex < (songlist.Count - 1) ? ++currentSongIndex : songlist.Count - 1;
                     }
@@ -253,6 +254,8 @@ namespace StyleStar
                     {
                         if (selectedFolderIndex == -1)
                             currentFolderIndex = currentFolderIndex > 0 ? --currentFolderIndex : 0;
+                        else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
+                            currentLevelIndex = currentLevelIndex > 0 ? --currentLevelIndex : 0;
                         else
                             currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
                     }
@@ -265,21 +268,26 @@ namespace StyleStar
                             selectedFolderIndex = currentFolderIndex;
                             switch (folderParams[selectedFolderIndex].Type)
                             {
-                                case SortType.Alpha:
-                                    if(folderParams[selectedFolderIndex].Value == 0)
-                                        songlist = songlist.OrderBy(x => x.Title).ToList();
-                                    else
-                                        songlist = songlist.OrderBy(x => x.Artist).ToList();
+                                case SortType.Title:
+                                    songlist = songlist.OrderBy(x => x.Title).ToList();
+                                    break;
+                                case SortType.Artist:
+                                    songlist = songlist.OrderBy(x => x.Artist).ToList();
                                     break;
                                 case SortType.Level:
-                                    songlist = songlist.OrderBy(x => x.Level).ToList();
-                                    currentSongIndex = songlist.FindLastIndex(x => x.Level < folderParams[selectedFolderIndex].Value) + 1;
+                                    selectedLevelIndex = -1;
                                     break;
                                 case SortType.Genre:
                                     break;
                                 default:
                                     break;
                             }
+                        }
+                        else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
+                        {
+                            selectedLevelIndex = currentLevelIndex;
+                            songlist = songlist.OrderBy(x => x.Level).ToList();
+                            currentSongIndex = songlist.FindLastIndex(x => x.Level < (selectedLevelIndex + 1)) + 1;
                         }
                         else
                         {
@@ -290,11 +298,20 @@ namespace StyleStar
                         }
                     }
 
-                    if ((kbState.IsKeyDown(Keys.Escape) && !prevKbState.IsKeyDown(Keys.Escape)) || (kbState.IsKeyDown(Keys.Back) && !prevKbState.IsKeyDown(Keys.Back))
-                        || (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed))
+                    if ((kbState.IsKeyDown(Keys.Escape) && !prevKbState.IsKeyDown(Keys.Escape)) || 
+                        (kbState.IsKeyDown(Keys.Back) && !prevKbState.IsKeyDown(Keys.Back)) ||
+                        ((kbState.IsKeyDown(Keys.Left) && !prevKbState.IsKeyDown(Keys.Left)) ||
+                        (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed)))
                     {
-                        selectedFolderIndex = -1;
-                        currentSongIndex = 0;
+                        if (selectedFolderIndex != -1 && folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex != -1)
+                        {
+                            selectedLevelIndex = -1;
+                        }
+                        else
+                        {
+                            selectedFolderIndex = -1;
+                            currentSongIndex = 0;
+                        }
                     }
 
                     break;
@@ -345,7 +362,7 @@ namespace StyleStar
 
                     var holdList = new List<Hold>(
                         currentSongNotes.Holds.Where(x =>
-                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 2 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)));
+                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 16 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)));
 
                     var motionList = new List<Note>(currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
                     motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
@@ -581,53 +598,61 @@ namespace StyleStar
                     break;
                 case Mode.SongSelect:
                     GraphicsDevice.Clear(Color.Black);
-                    spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-                    //spriteBatch.Draw(Globals.Textures["SongSelectionBG"], new Vector2(0, 0), Color.White);
-                    spriteBatch.Draw(Globals.Textures["SsArrow"], new Vector2(230, 20), Color.Chartreuse);
-                    spriteBatch.End();
 
-                    // SongSelection.DrawSelectionFrame(spriteBatch);
+                    // Draw order:
+                    // 1. BG
+                    // 2. Menu Bar
+                    // 3. Active Selection
+                    // 4. Songs/Folders
+                    // 5. UI elements
 
-
-                    for (int i = 0; i < folderParams.Count; i++)
+                    spriteBatch.Begin();
+                    spriteBatch.Draw(Globals.Textures["SsBgLine"], Globals.Origin, ThemeColors.Blue);
+                    spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
+                    if (selectedFolderIndex == -1)
                     {
-                        SongSelection.DrawFolder(spriteBatch, folderParams[i].Category, folderParams[i].Name, i - currentFolderIndex, selectedFolderIndex == -1);
-                    }
-                    if(currentFolderIndex < 2)
-                    {
-                        for (int i = -2; i < 0; i++)
-                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentFolderIndex, selectedFolderIndex == -1);
-                    }
-                    else if ((folderParams.Count - currentFolderIndex) < 4)
-                    {
-                        for (int i = folderParams.Count; i < folderParams.Count+4; i++)
-                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentFolderIndex, selectedFolderIndex == -1);
-                    }
+                        for (int i = 0; i < folderParams.Count; i++)
+                        {
+                            var cardOffset = Globals.ItemOrigin + (i - currentFolderIndex) * Globals.ItemOffset;
 
-                    if (selectedFolderIndex >= 0)
+                            spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
+                            spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
+                            spriteBatch.DrawString(Globals.Font["Franklin"], folderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 22, 225, 88), Color.White);
+                            spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
+                        }
+                    }
+                    else if(folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
+                    {
+                        for (int i = 0; i < 10; i++)
+                        {
+                            var cardOffset = Globals.ItemOrigin + (i - currentLevelIndex) * Globals.ItemOffset;
+
+                            spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
+                            spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
+                            spriteBatch.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 22, 225, 88), Color.White);
+                            spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
+                        }
+                    }
+                    else
                     {
                         for (int i = 0; i < songlist.Count; i++)
                         {
-                            songlist[i].Draw(spriteBatch, i - currentSongIndex);
+                            var cardOffset = Globals.ItemOrigin + (i - currentSongIndex) * Globals.ItemOffset;
+
+                            var bgCol = songlist[i].ColorBack != ThemeColors.NullColor ? songlist[i].ColorBack : ThemeColors.GetColor(i);
+                            var foreCol = songlist[i].ColorFore != ThemeColors.NullColor ? songlist[i].ColorFore : ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f);
+
+                            spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, bgCol);
+                            spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, foreCol);
+                            spriteBatch.Draw(Globals.Textures["SsAccentAlbum"], cardOffset, foreCol);
+                            spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle((int)cardOffset.X + 284, (int)cardOffset.Y + 12, 96, 96), Color.White);
+                            spriteBatch.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
+                            spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
+                            spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
+                            spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                         }
                     }
-                    if (currentSongIndex < 2 && selectedFolderIndex >= 0)
-                    {
-                        for (int i = -2; i < 0; i++)
-                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentSongIndex, true);
-                    }
-                    else if ((songlist.Count - currentSongIndex) < 4 && selectedFolderIndex >= 0)
-                    {
-                        for (int i = songlist.Count; i < songlist.Count + 4; i++)
-                            SongSelection.DrawFolder(spriteBatch, null, null, i - currentSongIndex, true);
-                    }
-
-                    //spriteBatch.Begin();
-                    //for (int i = 0; i < songlist.Count; i++)
-                    //{
-                    //    spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle(50, graphics.PreferredBackBufferHeight / 2 - 60 + 120 * (i - currentSongIndex), 200, 120), Color.White);
-                    //}
-                    //spriteBatch.End();
+                    spriteBatch.End();
 
                     if (enterLoadingScreen || leavingLoadingScreen)
                         DrawLoadingTransition(gameTime);

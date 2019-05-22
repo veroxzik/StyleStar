@@ -24,6 +24,9 @@ namespace StyleStar
         public Texture2D AlbumImage { get; set; }
         public string Jacket { get; set; }
         public int Level { get; set; }
+        public Color ColorFore { get; set; }
+        public Color ColorBack { get; set; }
+        public Color ColorAccent { get; set; }
 
         public SongMetadata() { }
 

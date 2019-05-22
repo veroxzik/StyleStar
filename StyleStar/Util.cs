@@ -18,7 +18,7 @@ namespace StyleStar
         /// 
         /// If the string is not a perfect match inside of the boundaries (which it would rarely be), then
         /// the string will be absolutely-centered inside of the boundaries.
-        static public void DrawString(SpriteBatch spriteBatch, SpriteFont font, string strToDraw, Rectangle boundaries, Color color, Justification just = Justification.Center)
+        static public void DrawString(this SpriteBatch spriteBatch, SpriteFont font, string strToDraw, Rectangle boundaries, Color color, Justification just = Justification.Center)
         {
             Vector2 size = font.MeasureString(strToDraw);
 
@@ -81,6 +81,12 @@ namespace StyleStar
             }
             Vector2 offset = new Vector2(xOffset, yOffset);
             sb.DrawString(font, text, position + offset, color, 0, new Vector2(0, 0), scale, new SpriteEffects(), 0);
+        }
+
+        public static Color LerpBlackAlpha(this Color color, float ratio, float alpha)
+        {
+            var tempColor = Color.Lerp(Color.Black, Color.Transparent, alpha);
+            return Color.Lerp(color, tempColor, ratio);
         }
     }
 

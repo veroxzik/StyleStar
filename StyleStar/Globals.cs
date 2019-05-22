@@ -30,6 +30,10 @@ namespace StyleStar
 
         public static float FootWidth { get; set; } = 4f;
 
+        public static Vector2 Origin = new Vector2(0, 0);
+        public static Vector2 ItemOrigin = new Vector2(144, 212);
+        public static Vector2 ItemOffset = new Vector2(-75, 130);
+
         // public static double CurrentBpm { get; set; }
         public static List<BpmChangeEvent> BpmEvents { get; set; }
 
@@ -156,18 +160,13 @@ namespace StyleStar
 
             Textures["HitTexture"] = ContentManager.Load<Texture2D>("HitTexture");
 
-            Textures["SongSelectionBG"] = ContentManager.Load<Texture2D>("SongSelectionBG");
-            Textures["SongBG"] = ContentManager.Load<Texture2D>("SongBG");
-            Textures["SongDifficulty"] = ContentManager.Load<Texture2D>("SongDifficulty");
-            Textures["FolderOverlay"] = ContentManager.Load<Texture2D>("FolderOverlay");
-
-            Textures["SsOuterFrame"] = ContentManager.Load<Texture2D>("SongSelection_OuterFrame");
-            Textures["SsMainFrame"] = ContentManager.Load<Texture2D>("SongSelection_MainFrame");
-            Textures["SsDifficultyFrame"] = ContentManager.Load<Texture2D>("SongSelection_DifficultyFrame");
+            Textures["SsActive"] = ContentManager.Load<Texture2D>("SongSelection_Active");
+            Textures["SsBgLine"] = ContentManager.Load<Texture2D>("SongSelection_BgLine");
+            Textures["SsFrame"] = ContentManager.Load<Texture2D>("SongSelection_Frame");
             Textures["SsAlbumFrame"] = ContentManager.Load<Texture2D>("SongSelection_AlbumFrame");
-            Textures["SsFolderFrame"] = ContentManager.Load<Texture2D>("SongSelection_FolderFrame");
-            Textures["SsArrow"] = ContentManager.Load<Texture2D>("SongSelection_Arrow");
-            Textures["SsMask"] = ContentManager.Load<Texture2D>("SongSelection_Mask");
+            Textures["SsItemBg"] = ContentManager.Load<Texture2D>("SongSelection_BG");
+            Textures["SsAccentStar"] = ContentManager.Load<Texture2D>("SongSelection_AccentStar");
+            Textures["SsAccentAlbum"] = ContentManager.Load<Texture2D>("SongSelection_AccentAlbum");
 
             Textures["GpLowerBG"] = ContentManager.Load<Texture2D>("Gameplay_LowerBG");
 

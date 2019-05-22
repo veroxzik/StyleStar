@@ -97,7 +97,8 @@ namespace StyleStar
 
     public enum SortType
     {
-        Alpha,
+        Title,
+        Artist,
         Level,
         Genre
     }
