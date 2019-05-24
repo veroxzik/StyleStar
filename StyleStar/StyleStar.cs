@@ -362,7 +362,7 @@ namespace StyleStar
 
                     var holdList = new List<Hold>(
                         currentSongNotes.Holds.Where(x =>
-                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 16 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)));
+                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 64 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)));
 
                     var motionList = new List<Note>(currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
                     motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
@@ -694,7 +694,7 @@ namespace StyleStar
                     {
                         var currentBeat = musicManager.GetCurrentBeat();
                         var motions = currentSongNotes.Motions.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
-                        var holds = currentSongNotes.Holds.Where(p => p.StartNote.BeatLocation > currentBeat - 6 && p.StartNote.BeatLocation < currentBeat + 16);
+                        var holds = currentSongNotes.Holds.Where(p => p.StartNote.BeatLocation > currentBeat - 16 && p.StartNote.BeatLocation < currentBeat + 16);
                         var notes = currentSongNotes.Steps.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
                         var marks = currentSongNotes.Markers.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
 

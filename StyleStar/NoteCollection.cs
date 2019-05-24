@@ -27,6 +27,7 @@ namespace StyleStar
             Metadata = new SongMetadata(fileName);
 
             Dictionary<int, int> holdIDlist = new Dictionary<int, int>();
+            Dictionary<int, SlideCollection> tempSlideDict = new Dictionary<int, SlideCollection>();
 
             using (StreamReader sr = new StreamReader(fileName))
             {
@@ -52,11 +53,9 @@ namespace StyleStar
                                     Steps.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Side.Right));
                                     break;
                                 case 3: // Motion Up
-                                    // Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Motion.Up));
                                     Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), 0, 16, Motion.Up));
                                     break;
                                 case 4: // Motion Down
-                                    //Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Motion.Down));
                                     Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), 0, 16, Motion.Down));
                                     break;
                                 default:    // Rest notes / spacers (0) are ignored
@@ -76,26 +75,25 @@ namespace StyleStar
                             switch (parsed.Notes[i].Item1)
                             {
                                 case 1: // Start a new note
-                                    Holds.Add(new Hold(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, side));
-                                    holdIDlist[parsed.NoteIdentifier] = Holds.Count - 1;
+                                    // Check to see if a hold is already active-- if so, commit it and start a new one
+                                    if(tempSlideDict.ContainsKey(parsed.NoteIdentifier))
+                                    {
+                                        CommitHold(tempSlideDict[parsed.NoteIdentifier]);
+                                        tempSlideDict.Remove(parsed.NoteIdentifier);
+                                    }
+                                    // Create a collection
+                                    tempSlideDict.Add(parsed.NoteIdentifier, new SlideCollection());
+                                    // Add this note to it
+                                    tempSlideDict[parsed.NoteIdentifier].Notes.Add(new Tuple<NoteParse, int>(parsed, i));
                                     break;
                                 case 2: // End a hold note with no shuffle
-                                    Holds[holdIDlist[parsed.NoteIdentifier]].AddNote(
-                                        new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, side) { Type = NoteType.Hold });
-                                    holdIDlist.Remove(parsed.NoteIdentifier);
-                                    break;
                                 case 3: // End a hold note with a shuffle
-                                    Holds[holdIDlist[parsed.NoteIdentifier]].AddNote(
-                                        new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, side) { Type = NoteType.Shuffle });
-                                    holdIDlist.Remove(parsed.NoteIdentifier);   // Can't remove hold notes until all lines of that measure has been parsed
-                                    break;
                                 case 4: // Add a midpoint with no shuffle
-                                    Holds[holdIDlist[parsed.NoteIdentifier]].AddNote(
-                                        new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, side) { Type = NoteType.Hold });
-                                    break;
                                 case 5: // Add a midpoint with a shuffle
-                                    Holds[holdIDlist[parsed.NoteIdentifier]].AddNote(
-                                        new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, side) { Type = NoteType.Shuffle });
+                                    if (!tempSlideDict.ContainsKey(parsed.NoteIdentifier))
+                                        tempSlideDict.Add(parsed.NoteIdentifier, new SlideCollection());    // Add a new one (it will fuck up shit if this happens)
+                                                                                                            // Add this note to it
+                                    tempSlideDict[parsed.NoteIdentifier].Notes.Add(new Tuple<NoteParse, int>(parsed, i));
                                     break;
                                 default:    // Rest notes / spacers (0) are ignored
                                     break;
@@ -117,6 +115,12 @@ namespace StyleStar
                         }
                     }
                 }
+            }
+
+            // Close out any remaining hold notes
+            foreach (var tempHold in tempSlideDict)
+            {
+                CommitHold(tempHold.Value);
             }
 
             // Add Beat Markers
@@ -192,6 +196,50 @@ namespace StyleStar
                 return Convert.ToInt32(s);
             else
                 return Convert.ToInt32(s[0]) - 'a' + 10;
+        }
+
+        class SlideCollection
+        {
+            public List<Tuple<NoteParse, int>> Notes = new List<Tuple<NoteParse, int>>();
+            public bool containsStart { get { return Notes.FirstOrDefault(x => x.Item1.NoteClass == 1) == null ? false : true; } }
+            public bool containsEnd { get { return Notes.FirstOrDefault(x => x.Item1.NoteClass == 2) == null ? false : true; } }
+        }
+
+        void CommitHold(SlideCollection col)
+        {
+            Hold tempHold = new Hold(0, 0, 0, Side.NotSet);
+            List<Note> tempNotes = new List<Note>();
+            for (int i = 0; i < col.Notes.Count; i++)
+            {
+                var parsed = col.Notes[i].Item1;
+                double noteSub = 1.0 / parsed.Notes.Count;
+                var j = col.Notes[i].Item2;
+                Side side = parsed.NoteClass == 2 ? Side.Left : Side.Right;
+
+                if(i == 0)
+                    tempHold = new Hold(4* (parsed.Measure + j * noteSub), parsed.LaneIndex, parsed.Notes[j].Item2, side);
+                else
+                {
+                    switch(parsed.Notes[j].Item1)
+                    {
+                        case 1: // Shouldn't happen because it was already added above
+                            throw new Exception("Unexpected start note.");
+                        case 2: // End a hold note with no shuffle
+                        case 4: // Add a midpoint with no shuffle
+                            tempNotes.Add(new Note(4 * (parsed.Measure + j * noteSub), parsed.LaneIndex, parsed.Notes[j].Item2, side) { Type = NoteType.Hold });
+                            break;
+                        case 3: // End a hold note with a shuffle
+                        case 5: // Add a midpoint with a shuffle
+                            tempNotes.Add(new Note(4 * (parsed.Measure + j * noteSub), parsed.LaneIndex, parsed.Notes[j].Item2, side) { Type = NoteType.Shuffle });
+                            break;
+                    }
+                }
+            }
+            tempNotes.Sort((x, y) => x.BeatLocation.CompareTo(y.BeatLocation));
+            foreach (var note in tempNotes)
+                tempHold.AddNote(note);
+
+            Holds.Add(tempHold);
         }
     }
 }
