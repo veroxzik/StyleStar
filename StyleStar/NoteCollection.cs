@@ -17,6 +17,9 @@ namespace StyleStar
         public List<Note> Motions { get; private set; } = new List<Note>();
         public List<BeatMarker> Markers { get; private set; } = new List<BeatMarker>();
 
+        public double CurrentScore { get; private set; }
+        public int TotalNotes { get; private set; }
+
         public NoteCollection()
         {
 
@@ -132,6 +135,10 @@ namespace StyleStar
             for (int i = 0; i <= (int)lastBeat; i+= 4)
                 Markers.Add(new BeatMarker(i));
 
+            TotalNotes += Steps.Count();
+            TotalNotes += Holds.Count();    // This is not true, need to add on-beat counters
+            TotalNotes += Motions.Count();
+
             return Metadata;
         }
 
@@ -240,6 +247,37 @@ namespace StyleStar
                 tempHold.AddNote(note);
 
             Holds.Add(tempHold);
+        }
+
+        public void AddToScore(NoteType type, float diff)
+        {
+            switch (type)
+            {
+                case NoteType.Step:
+                case NoteType.Hold:
+                    if (diff == Timing.MissFlag)
+                        return;
+                    else
+                    {
+                        if (Math.Abs(diff) <= NoteTiming.Perfect)
+                            CurrentScore += 1.0;
+                        else if (Math.Abs(diff) <= NoteTiming.Great)
+                            CurrentScore += 0.9;
+                        else if (Math.Abs(diff) <= NoteTiming.Good)
+                            CurrentScore += 0.5;
+                    }
+                    break;
+                case NoteType.Slide:
+                    break;
+                case NoteType.Shuffle:
+                    break;
+                case NoteType.Motion:
+                    if (diff != Timing.MissFlag)
+                        CurrentScore += 1.0;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

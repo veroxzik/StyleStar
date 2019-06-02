@@ -159,6 +159,7 @@ namespace StyleStar
             Globals.Font.Add("Italic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Italic"));
             Globals.Font.Add("BoldItalic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-BoldItalic"));
             Globals.Font.Add("Franklin", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
+            Globals.FontScalingFactor.Add(Globals.Font["Franklin"], new Tuple<float, float>(43.857f, -.486f));
 
             // Load songs
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -357,14 +358,13 @@ namespace StyleStar
                     // Steps, which will hopefully move to an HID event class later
                     var currentBeat = hitBeat = musicManager.GetCurrentBeat();
                     var currentTime = Globals.GetSecAtBeat(currentBeat);
-                    var stepList = new List<Note>(currentSongNotes.Steps.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
+                    var stepList = currentSongNotes.Steps.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit).ToList();
                     stepList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
 
-                    var holdList = new List<Hold>(
-                        currentSongNotes.Holds.Where(x =>
-                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 64 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)));
+                    var holdList = currentSongNotes.Holds.Where(x =>
+                        Math.Abs(x.StartNote.BeatLocation - currentBeat) < 64 || (x.StartNote.BeatLocation < currentBeat && x.Notes.Last().BeatLocation > currentBeat)).ToList();
 
-                    var motionList = new List<Note>(currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit));
+                    var motionList = currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit).ToList();
                     motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
 
                     // Temporary keyboard inputs
@@ -407,11 +407,15 @@ namespace StyleStar
                         {
                             step.HitResult.WasHit = true;   // Let everyone else know this note has been resolved
                             step.HitResult.Difference = Timing.MissFlag;
+                            currentSongNotes.AddToScore(NoteType.Step, step.HitResult.Difference);
                         }
                         else if (touchCollection.Points.Count > 0)
                         {
                             if (touchCollection.CheckHit(step))
+                            {
                                 gradeCollection.Set(gameTime, step);
+                                currentSongNotes.AddToScore(NoteType.Step, step.HitResult.Difference);
+                            }
                         }
                     }
 
@@ -427,11 +431,15 @@ namespace StyleStar
                             {
                                 hold.StartNote.HitResult.WasHit = true; // Let everyone else know this note has been resolved
                                 hold.StartNote.HitResult.Difference = Timing.MissFlag;
+                                currentSongNotes.AddToScore(NoteType.Hold, hold.StartNote.HitResult.Difference);
                             }
                             else if (touchCollection.Points.Count > 0)
                             {
                                 if (touchCollection.CheckHit(hold.StartNote))
+                                {
                                     gradeCollection.Set(gameTime, hold.StartNote);
+                                    currentSongNotes.AddToScore(NoteType.Hold, hold.StartNote.HitResult.Difference);
+                                }
                             }
                         }
 
@@ -455,11 +463,15 @@ namespace StyleStar
                         {
                             motion.HitResult.WasHit = true;
                             motion.HitResult.Difference = Timing.MissFlag;
+                            currentSongNotes.AddToScore(NoteType.Motion, motion.HitResult.Difference);
                         }
                         else if (motion.Motion == Motion.Down && !double.IsNaN(motionCollection.DownBeat))
                         {
                             if (motionCollection.CheckHit(motion))
+                            {
                                 gradeCollection.Set(gameTime, motion);
+                                currentSongNotes.AddToScore(NoteType.Motion, motion.HitResult.Difference);
+                            }
                         }
                         else if (motion.Motion == Motion.Up && motionTimeMS < MotionTiming.JumpPerfectCheck)
                         {
@@ -469,6 +481,7 @@ namespace StyleStar
                                 motion.HitResult.WasHit = true;
                                 motion.HitResult.Difference = (float)motionTimeMS;
                                 gradeCollection.Set(gameTime, motion);
+                                currentSongNotes.AddToScore(NoteType.Motion, motion.HitResult.Difference);
                             }
                         }
                     }
@@ -661,6 +674,8 @@ namespace StyleStar
                             spriteBatch.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
                             spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
                             spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
+                            spriteBatch.Draw(Globals.Textures["SsDifficultyBg"], cardOffset, Color.White);
+                            spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)songlist[i].Difficulty), 20, 39), Color.Black);
                             spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                         }
                     }
@@ -767,10 +782,15 @@ namespace StyleStar
                     spriteBatch.Draw(Globals.Textures["GpLowerBG"], new Vector2(0, 599), Color.Black);
                     float yTopRow = 625f;
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "SCROLL", new Vector2(50, yTopRow), Color.White, 0.08f, Justification.Center);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "ACCURACY", new Vector2(100, yTopRow), Color.White, 0.08f, Justification.Left);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "NORMAL", new Vector2(1200, yTopRow), Color.White, 0.08f, Justification.Center);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "ACCURACY", new Vector2(120, yTopRow), Color.White, 0.08f, Justification.Left);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), currentSongNotes.Metadata.Difficulty).ToUpper(), new Vector2(1200, yTopRow), Color.White, 0.08f, Justification.Center);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Title, new Vector2(1150, yTopRow), Color.White, 0.2f, Justification.Right);
                     float yBottomRow = 685f;
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "1.0", new Vector2(50, yBottomRow), Color.White, 0.2f, Justification.Center | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "1.0", new Vector2(50, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.00"), new Vector2(120, yBottomRow), Color.White, 0.25f, Justification.Left | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "/ 100.00%", new Vector2(315, yBottomRow), Color.White, 0.18f, Justification.Left | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Artist, new Vector2(1150, yBottomRow), Color.White, 0.1f, Justification.Right | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
                     spriteBatch.End();
 
                     // Draw hit stats
@@ -812,6 +832,7 @@ namespace StyleStar
             }
         }
 
+        static private Rectangle loadingRect = new Rectangle();
         private void DrawLoadingTransition(GameTime gt)
         {
             var duration = gt.TotalGameTime.TotalMilliseconds - loadingScreenTime;
@@ -821,10 +842,18 @@ namespace StyleStar
             var yT = Math.Min(0, 0 - Height / 2 * ratio);
             var yB = Math.Max(Height / 2, Height / 2 + Height / 2 * ratio);
             spriteBatch.Begin();
-            spriteBatch.Draw(loadingScreenImageUL, new Rectangle((int)xL, (int)yT, Width / 2, Height / 2), Color.White);
-            spriteBatch.Draw(loadingScreenImageUR, new Rectangle((int)xR, (int)yT, Width / 2, Height / 2), Color.White);
-            spriteBatch.Draw(loadingScreenImageLL, new Rectangle((int)xL, (int)yB, Width / 2, Height / 2), Color.White);
-            spriteBatch.Draw(loadingScreenImageLR, new Rectangle((int)xR, (int)yB, Width / 2, Height / 2), Color.White);
+            loadingRect.X = (int)xL;
+            loadingRect.Y = (int)yT;
+            loadingRect.Width = Width / 2;
+            loadingRect.Height = Height / 2;
+            spriteBatch.Draw(loadingScreenImageUL, loadingRect, Color.White);
+            loadingRect.X = (int)xR;
+            spriteBatch.Draw(loadingScreenImageUR, loadingRect, Color.White);
+            loadingRect.X = (int)xL;
+            loadingRect.Y = (int)yB;
+            spriteBatch.Draw(loadingScreenImageLL, loadingRect, Color.White);
+            loadingRect.X = (int)xR;
+            spriteBatch.Draw(loadingScreenImageLR, loadingRect, Color.White);
             spriteBatch.End();
         }
 

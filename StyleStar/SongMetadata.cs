@@ -23,6 +23,7 @@ namespace StyleStar
         public string Designer { get; set; }
         public Texture2D AlbumImage { get; set; }
         public string Jacket { get; set; }
+        public Difficulty Difficulty { get; set; }
         public int Level { get; set; }
         public Color ColorFore { get; set; }
         public Color ColorBack { get; set; }
@@ -51,6 +52,8 @@ namespace StyleStar
                         Artist = parse;
                     if (StringExtensions.TrySearchTag(line, "DESIGNER", out parse))
                         Designer = parse;
+                    if (StringExtensions.TrySearchTag(line, "DIFFICULTY", out parse))
+                        Difficulty = (Difficulty)Convert.ToInt32(parse);
                     if (StringExtensions.TrySearchTag(line, "PLAYLEVEL", out parse))
                         Level = Convert.ToInt32(parse);
                     if (StringExtensions.TrySearchTag(line, "JACKET", out parse))
@@ -63,9 +66,14 @@ namespace StyleStar
                     }
                 }
             }
-            using (FileStream fs = new FileStream(FilePath + (Jacket == "" ? "thumb.png" : Jacket), FileMode.Open))
+            if (Jacket == "")
+                AlbumImage = Globals.Textures["FallbackJacket"];
+            else
             {
-                AlbumImage = Texture2D.FromStream(Globals.GraphicsManager.GraphicsDevice, fs);
+                using (FileStream fs = new FileStream(FilePath + Jacket, FileMode.Open))
+                {
+                    AlbumImage = Texture2D.FromStream(Globals.GraphicsManager.GraphicsDevice, fs);
+                }
             }
 
         }

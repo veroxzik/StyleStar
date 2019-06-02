@@ -34,6 +34,8 @@ namespace StyleStar
         public static Vector2 ItemOrigin = new Vector2(144, 212);
         public static Vector2 ItemOffset = new Vector2(-75, 130);
 
+        public static Dictionary<SpriteFont, Tuple<float,float>> FontScalingFactor = new Dictionary<SpriteFont, Tuple<float, float>>();
+
         // public static double CurrentBpm { get; set; }
         public static List<BpmChangeEvent> BpmEvents { get; set; }
 
@@ -167,6 +169,9 @@ namespace StyleStar
             Textures["SsItemBg"] = ContentManager.Load<Texture2D>("SongSelection_BG");
             Textures["SsAccentStar"] = ContentManager.Load<Texture2D>("SongSelection_AccentStar");
             Textures["SsAccentAlbum"] = ContentManager.Load<Texture2D>("SongSelection_AccentAlbum");
+            Textures["SsDifficultyBg"] = ContentManager.Load<Texture2D>("SongSelection_DifficultyBG");
+
+            Textures["FallbackJacket"] = ContentManager.Load<Texture2D>("Fallback_Jacket");
 
             Textures["GpLowerBG"] = ContentManager.Load<Texture2D>("Gameplay_LowerBG");
 
@@ -205,5 +210,12 @@ namespace StyleStar
         Loading,
         GamePlay,
         Results
+    }
+
+    public enum Difficulty
+    {
+        Easy = 0,
+        Normal,
+        Hard
     }
 }

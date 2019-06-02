@@ -66,21 +66,42 @@ namespace StyleStar
         public static void DrawStringJustify(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float scale, Justification justification)
         {
             Vector2 size = font.MeasureString(text);
+            float trueY = Globals.FontScalingFactor[font].Item1 * scale + Globals.FontScalingFactor[font].Item2;
             float xOffset = 0, yOffset = 0;
             if (justification.HasFlag(Justification.Right))
             {
-                xOffset = -size.X * scale;
+                xOffset += -size.X * scale;
             }
             else if (justification.HasFlag(Justification.Center))
             {
-                xOffset = -size.X * scale / 2;
+                xOffset += -size.X * scale / 2;
             }
-            if (justification.HasFlag(Justification.Bottom))
+            if (!justification.HasFlag(Justification.Bottom) && !justification.HasFlag(Justification.Middle))
             {
-                yOffset = -size.Y * scale;
+                yOffset += -trueY;
+            }
+            else if (justification.HasFlag(Justification.Bottom))
+            {
+                yOffset += -size.Y * scale + trueY;
             }
             Vector2 offset = new Vector2(xOffset, yOffset);
             sb.DrawString(font, text, position + offset, color, 0, new Vector2(0, 0), scale, new SpriteEffects(), 0);
+            //Vector2 size = font.MeasureString(text);
+            //float xOffset = 0, yOffset = 0;
+            //if (justification.HasFlag(Justification.Right))
+            //{
+            //    xOffset = size.X * scale;
+            //}
+            //else if (justification.HasFlag(Justification.Center))
+            //{
+            //    xOffset = size.X * scale / 2;
+            //}
+            //if (justification.HasFlag(Justification.Bottom))
+            //{
+            //    yOffset = size.Y * scale;
+            //}
+            //Vector2 offset = new Vector2(xOffset, yOffset);
+            //sb.DrawString(font, text, position, color, 0, offset, scale, new SpriteEffects(), 0);
         }
 
         public static Color LerpBlackAlpha(this Color color, float ratio, float alpha)
@@ -93,10 +114,11 @@ namespace StyleStar
     [Flags]
     public enum Justification
     {
-        Left,
-        Right,
-        Center,
-        Top,
-        Bottom
+        Left    = 0x01,
+        Right   = 0x02,
+        Center  = 0x04,
+        Top     = 0x08,
+        Bottom  = 0x10,
+        Middle  = 0x20
     }
 }
