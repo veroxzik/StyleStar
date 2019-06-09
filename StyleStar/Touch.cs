@@ -1,19 +1,39 @@
 ﻿using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StyleStar
 {
     public class TouchCollection
     {
-        public List<TouchPoint> Points = new List<TouchPoint>();
+        public ConcurrentDictionary<uint, TouchPoint> Points = new ConcurrentDictionary<uint, TouchPoint>();
+        //public List<TouchPoint> Points = new List<TouchPoint>();
 
-        public void RemoveID(int id)
+        public bool UpdateID(uint id, Point rawPt)
         {
-            Points.RemoveAll(x => x.ID == id);
+            var pt = Points.FirstOrDefault(x => x.Value.ID == id);
+            pt.Value.RawX = rawPt.X;
+            pt.Value.RawY = rawPt.Y;
+            return true;
+            //if (pt == null)
+            //    return false;
+            //else
+            //{
+            //    pt.RawX = rawPt.X;
+            //    pt.RawY = rawPt.Y;
+            //    return true;
+            //}
+        }
+
+        public bool RemoveID(uint id)
+        {
+            TouchPoint temp;
+            return Points.TryRemove(id, out temp);
         }
 
         public bool CheckHit(Note note)
@@ -21,15 +41,15 @@ namespace StyleStar
             var noteMin = Globals.CalcTransX(note, Side.Left);
             var noteMax = Globals.CalcTransX(note, Side.Right);
 
-            var validPoints = Points.Where(x => x.MinX < noteMax && x.MaxX > noteMin).ToList();
+            var validPoints = Points.Where(x => x.Value.MinX < noteMax && x.Value.MaxX > noteMin).ToList();
             if (validPoints.Count == 0)
                 return false;   // No need to modify hit result-- defaults to false
 
-            validPoints.Sort((x, y) => Math.Abs(x.Beat - note.BeatLocation).CompareTo(Math.Abs(y.Beat - note.BeatLocation)));
+            validPoints.Sort((x, y) => Math.Abs(x.Value.Beat - note.BeatLocation).CompareTo(Math.Abs(y.Value.Beat - note.BeatLocation)));
 
             // Use the closest point and get the time difference
             //float diffMS = (float)(((note.BeatLocation - validPoints.First().Beat) * 60 / Globals.CurrentBpm));
-            float diffMS = (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(validPoints.First().Beat));
+            float diffMS = (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(validPoints.First().Value.Beat));
             if (diffMS > NoteTiming.Bad) // Too soon to hit, just leave
                 return false;
     
@@ -51,7 +71,7 @@ namespace StyleStar
         public float MinX { get { return X - Width / 2; } }
         public float MaxX { get { return X + Width / 2; } }
         public double Beat { get; private set; }
-        public int ID { get; set; } // 16bit psuedorando UID
+        public uint ID { get; set; } // 32bit ID (from Windows Message, etc.)
 
         private QuadTexture footTexture;
         private QuadTexture laneTexture;

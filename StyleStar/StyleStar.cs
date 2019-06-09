@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using System.IO;
+using Microsoft.Xna.Framework.Input.Touch;
+using System.Runtime.InteropServices;
 
 namespace StyleStar
 {
@@ -55,6 +57,11 @@ namespace StyleStar
 
         KeyboardState prevKbState;
         MouseState prevMouseState;
+        bool disableMouseClick;
+
+        bool TouchScreenConnected = false;
+
+        TouchWindowsHook touchHookWin;
 
         TouchCollection touchCollection = new TouchCollection();
         MotionCollection motionCollection = new MotionCollection();
@@ -75,7 +82,7 @@ namespace StyleStar
         double hitBeat = 0;
         double closestNoteBeat = 0;
         Keys[] touchkeys = new Keys[] { Keys.A, Keys.S, Keys.D, Keys.F, Keys.J, Keys.K, Keys.L, Keys.OemSemicolon };
-        Dictionary<Keys, int> KeyDictionary = new Dictionary<Keys, int>();
+        Dictionary<Keys, uint> KeyDictionary = new Dictionary<Keys, uint>();
         Random random = new Random();
 
         // DEBUG
@@ -95,8 +102,15 @@ namespace StyleStar
             this.graphics.SynchronizeWithVerticalRetrace = false;
             base.IsFixedTimeStep = false;
 
+            //m_event = Hook.GlobalEvents();
+            //m_event.TouchMove += M_event_TouchMove;
 
             //this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
+        }
+
+        private void M_event_TouchMove(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            Console.WriteLine("TOUCH MOVE!!");
         }
 
         /// <summary>
@@ -118,6 +132,17 @@ namespace StyleStar
             view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
 
             bgRect = new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+
+            if (TouchPanel.GetCapabilities().IsConnected)
+            {
+                TouchScreenConnected = true;
+                disableMouseClick = true;
+                TouchPanel.EnableMouseTouchPoint = true;
+                TouchPanel.EnabledGestures = GestureType.Tap;
+                TouchPanel.EnableMouseGestures = true;
+
+                touchHookWin = new TouchWindowsHook(touchCollection, musicManager);
+            }
 
             base.Initialize();
         }
@@ -262,7 +287,7 @@ namespace StyleStar
                     }
 
                     if ((kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
-                        || (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed))
+                        || (!disableMouseClick && (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed)))
                     {
                         if (selectedFolderIndex == -1)
                         {
@@ -302,7 +327,7 @@ namespace StyleStar
                     if ((kbState.IsKeyDown(Keys.Escape) && !prevKbState.IsKeyDown(Keys.Escape)) || 
                         (kbState.IsKeyDown(Keys.Back) && !prevKbState.IsKeyDown(Keys.Back)) ||
                         ((kbState.IsKeyDown(Keys.Left) && !prevKbState.IsKeyDown(Keys.Left)) ||
-                        (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed)))
+                        (!disableMouseClick && (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed))))
                     {
                         if (selectedFolderIndex != -1 && folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex != -1)
                         {
@@ -368,29 +393,32 @@ namespace StyleStar
                     motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
 
                     // Temporary keyboard inputs
-                    for (int i = 0; i < 8; i++)
+                    if (!TouchScreenConnected)
                     {
-                        if (kbState.IsKeyDown(touchkeys[i]) && !prevKbState.IsKeyDown(touchkeys[i]))
-                        {
-                            if (stepList.Count > 0)
-                                closestNoteBeat = stepList.First().BeatLocation;
-                            int id = random.Next(0, int.MaxValue);
-                            touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id });
-                            KeyDictionary.Add(touchkeys[i], id);
+                        //for (int i = 0; i < 8; i++)
+                        //{
+                        //    if (kbState.IsKeyDown(touchkeys[i]) && !prevKbState.IsKeyDown(touchkeys[i]))
+                        //    {
+                        //        if (stepList.Count > 0)
+                        //            closestNoteBeat = stepList.First().BeatLocation;
+                        //        uint id = (uint)random.Next(0, int.MaxValue);
+                        //        touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id });
+                        //        KeyDictionary.Add(touchkeys[i], id);
 
-                            motionCollection.JumpBeat = double.NaN;
-                        }
-                        else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
-                        {
-                            if (touchCollection.Points.Count(pt => pt.ID == KeyDictionary[touchkeys[i]]) > 0)
-                            {
-                                touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
-                                KeyDictionary.Remove(touchkeys[i]);
-                            }
+                        //        motionCollection.JumpBeat = double.NaN;
+                        //    }
+                        //    else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
+                        //    {
+                        //        if (touchCollection.Points.Count(pt => pt.ID == KeyDictionary[touchkeys[i]]) > 0)
+                        //        {
+                        //            touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
+                        //            KeyDictionary.Remove(touchkeys[i]);
+                        //        }
 
-                            if (touchCollection.Points.Count == 0)
-                                motionCollection.JumpBeat = currentBeat;
-                        }
+                        //        if (touchCollection.Points.Count == 0)
+                        //            motionCollection.JumpBeat = currentBeat;
+                        //    }
+                        //}
                     }
                     if (kbState.IsKeyDown(Keys.Space) && !prevKbState.IsKeyDown(Keys.Space))
                         motionCollection.DownBeat = currentBeat;
@@ -723,7 +751,7 @@ namespace StyleStar
                         // Feet width lines are drawn first
                         // Then the feet icons
                         foreach (var touchPt in touchCollection.Points)
-                            touchPt.Draw(view, projection);
+                            touchPt.Value.Draw(view, projection);
 
                         foreach (var motion in motions)
                             motion.Draw(currentBeat, view, projection);

@@ -69,6 +69,9 @@ namespace StyleStar
 
         public double GetCurrentBeat()
         {
+            if (Globals.BpmEvents == null)
+                return -1;
+
             double sec = GetCurrentSec();
             var evt = Globals.BpmEvents.Where(x => sec >= x.StartSeconds).LastOrDefault();
             if (evt == null)

@@ -150,7 +150,7 @@ namespace StyleStar
                 noteMax = Globals.CalcTransX(firstNote, Side.Right);
             }
 
-            var validPoints = tc.Points.Where(x => x.MinX < noteMax && x.MaxX > noteMin).ToList();
+            var validPoints = tc.Points.Where(x => x.Value.MinX < noteMax && x.Value.MaxX > noteMin).ToList();
             if (validPoints.Count == 0)
             {
                 IsPlayerHolding = false;
