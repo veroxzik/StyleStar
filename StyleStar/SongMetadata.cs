@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+
 namespace StyleStar
 {
     public class SongMetadata
@@ -58,6 +59,12 @@ namespace StyleStar
                         Level = Convert.ToInt32(parse);
                     if (StringExtensions.TrySearchTag(line, "JACKET", out parse))
                         Jacket = parse;
+                    if (StringExtensions.TrySearchTag(line, "COLORFORE", out parse))
+                        ColorFore = Util.ParseFromHex(parse);
+                    if (StringExtensions.TrySearchTag(line, "COLORBACK", out parse))
+                        ColorBack = Util.ParseFromHex(parse);
+                    if (StringExtensions.TrySearchTag(line, "COLORACCENT", out parse))
+                        ColorAccent = Util.ParseFromHex(parse);
 
                     if (Regex.IsMatch(line, "(#BPM)"))
                     {

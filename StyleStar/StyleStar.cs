@@ -661,9 +661,9 @@ namespace StyleStar
 
                     spriteBatch.Begin();
                     spriteBatch.Draw(Globals.Textures["SsBgLine"], Globals.Origin, ThemeColors.Blue);
-                    spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
                     if (selectedFolderIndex == -1)
                     {
+                        spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
                         for (int i = 0; i < folderParams.Count; i++)
                         {
                             var cardOffset = Globals.ItemOrigin + (i - currentFolderIndex) * Globals.ItemOffset;
@@ -673,9 +673,12 @@ namespace StyleStar
                             spriteBatch.DrawString(Globals.Font["Franklin"], folderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 22, 225, 88), Color.White);
                             spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                         }
+
+                        spriteBatch.Draw(Globals.Textures["SsFolderSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
                     }
                     else if(folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
                     {
+                        spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
                         for (int i = 0; i < 10; i++)
                         {
                             var cardOffset = Globals.ItemOrigin + (i - currentLevelIndex) * Globals.ItemOffset;
@@ -685,9 +688,14 @@ namespace StyleStar
                             spriteBatch.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 22, 225, 88), Color.White);
                             spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                         }
+
+                        spriteBatch.Draw(Globals.Textures["SsGoBack"], Globals.ItemOrigin + new Vector2(-40f, -70f), Color.White);
+                        spriteBatch.Draw(Globals.Textures["SsFolderSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
                     }
                     else
                     {
+                        var selCol = songlist[currentSongIndex].ColorFore != ThemeColors.NullColor ? songlist[currentSongIndex].ColorFore : Color.White;
+                        spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, selCol);
                         for (int i = 0; i < songlist.Count; i++)
                         {
                             var cardOffset = Globals.ItemOrigin + (i - currentSongIndex) * Globals.ItemOffset;
@@ -706,6 +714,14 @@ namespace StyleStar
                             spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)songlist[i].Difficulty), 20, 39), Color.Black);
                             spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                         }
+
+                        spriteBatch.Draw(Globals.Textures["SsGoBack"], Globals.ItemOrigin + new Vector2(-40f, -70f), Color.White);
+                        spriteBatch.Draw(Globals.Textures["SsSongSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
+
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].Title, new Vector2(1220, 560), Color.White, 0.3f, Justification.Bottom | Justification.Right);
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].Artist, new Vector2(1220, 600), Color.White, 0.2f, Justification.Bottom | Justification.Right);
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0") + " BPM", new Vector2(1220, 640), Color.White, 0.18f, Justification.Bottom | Justification.Right);
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "Choreo: " + songlist[currentSongIndex].Designer, new Vector2(1220, 680), Color.White, 0.14f, Justification.Bottom | Justification.Right);
                     }
                     spriteBatch.End();
 

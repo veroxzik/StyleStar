@@ -109,6 +109,18 @@ namespace StyleStar
             var tempColor = Color.Lerp(Color.Black, Color.Transparent, alpha);
             return Color.Lerp(color, tempColor, ratio);
         }
+
+        public static Color ParseFromHex(string input)
+        {
+            int r, g, b;
+            if (input.StartsWith("#"))
+                input = input.Remove(0, 1);
+            r = int.Parse(input.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+            g = int.Parse(input.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+            b = int.Parse(input.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+
+            return new Color(r, g, b);
+        }
     }
 
     [Flags]

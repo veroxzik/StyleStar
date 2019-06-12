@@ -171,6 +171,10 @@ namespace StyleStar
             Textures["SsAccentAlbum"] = ContentManager.Load<Texture2D>("SongSelection_AccentAlbum");
             Textures["SsDifficultyBg"] = ContentManager.Load<Texture2D>("SongSelection_DifficultyBG");
 
+            Textures["SsFolderSelect"] = ContentManager.Load<Texture2D>("SongSelection_FolderSelect");
+            Textures["SsSongSelect"] = ContentManager.Load<Texture2D>("SongSelection_SongSelect");
+            Textures["SsGoBack"] = ContentManager.Load<Texture2D>("SongSelection_GoBack");
+
             Textures["FallbackJacket"] = ContentManager.Load<Texture2D>("Fallback_Jacket");
 
             Textures["GpLowerBG"] = ContentManager.Load<Texture2D>("Gameplay_LowerBG");
