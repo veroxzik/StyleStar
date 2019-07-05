@@ -43,6 +43,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="BpmChange.cs" />
+    <Compile Include="Defines.cs" />
     <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
     <Compile Include="Motion.cs" />

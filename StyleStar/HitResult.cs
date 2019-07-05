@@ -32,6 +32,10 @@ namespace StyleStar
         public static readonly float Good = 1 / 60.0f * 6;
         public static readonly float Great = 1 / 60.0f * 4;
         public static readonly float Perfect = 1 / 60.0f * 2;
+
+        public static readonly double BeatTolerance = 0.05; // This is the window that hold note beats will count
+
+        public static readonly double AutoTolerance = 0.01;
     }
 
     public static class MotionTiming
@@ -41,5 +45,12 @@ namespace StyleStar
         public static readonly float EarlyPerfect = 1 / 60.0f * 2;
         public static readonly float Perfect = 1 / 60.0f * 10;
         public static readonly float JumpPerfectCheck = 1 / 60.0f * 2;
+    }
+
+    public enum HitState
+    {
+        Unknown,
+        Miss,
+        Hit
     }
 }

@@ -25,8 +25,8 @@ namespace StyleStar
         Vector3 cameraPos = new Vector3(0, -44, 23);
         Vector3 cameraTarget = new Vector3(0, 36, 2);
 
-        private Matrix view;
-        private Matrix projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 800 / 480f, 0.1f, 300f);
+        Matrix view;
+        Matrix projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 800 / 480f, 0.1f, 300f);
 
         QuadTexture gradeZone;
         QuadTexture noteLanes, noteLaneAccent1l, noteLaneAccent1r, noteLaneAccent2l, noteLaneAccent2r;
@@ -53,6 +53,7 @@ namespace StyleStar
         int currentLevelIndex = 0;
         int selectedFolderIndex = -1;
         int selectedLevelIndex = -1;
+        int currentSongLevelIndex = 0;  // Used to track difficulty switches
         List<FolderParams> folderParams = new List<FolderParams>();
 
         KeyboardState prevKbState;
@@ -72,18 +73,17 @@ namespace StyleStar
         double loadingScreenTime;
         int loadingScreenTransition = 400;
         int loadingScreenWait = 1000;
-        Texture2D loadingScreenImageUL;
-        Texture2D loadingScreenImageUR;
-        Texture2D loadingScreenImageLL;
-        Texture2D loadingScreenImageLR;
-        Rectangle loadingScreenRect;
+        Texture2D loadingScreenLeft;
+        Texture2D loadingScreenRight;
 
         // Hit Debug
         double hitBeat = 0;
         double closestNoteBeat = 0;
         Keys[] touchkeys = new Keys[] { Keys.A, Keys.S, Keys.D, Keys.F, Keys.J, Keys.K, Keys.L, Keys.OemSemicolon };
+        bool[] prevKeys = new bool[8];
         Dictionary<Keys, uint> KeyDictionary = new Dictionary<Keys, uint>();
         Random random = new Random();
+        bool horzMotion = false;
 
         // DEBUG
         bool enableProfiling = false;
@@ -172,10 +172,8 @@ namespace StyleStar
             noteLaneAccent2r = new QuadTexture(Content.Load<Texture2D>("NoteLaneAccent2"));
             noteLaneAccent2r.SetVerts(-Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth * 2, -20, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth, -Globals.GradeZoneWidth / 2 - Globals.NoteLaneAccentWidth * 2, 300, -0.15f);
             background = Content.Load<Texture2D>("Background");
-            loadingScreenImageUL = Content.Load<Texture2D>("LoadingScreenUL");
-            loadingScreenImageUR = Content.Load<Texture2D>("LoadingScreenUR");
-            loadingScreenImageLL = Content.Load<Texture2D>("LoadingScreenLL");
-            loadingScreenImageLR = Content.Load<Texture2D>("LoadingScreenLR");
+            loadingScreenLeft = Content.Load<Texture2D>("LoadingScreen-Left");
+            loadingScreenRight = Content.Load<Texture2D>("LoadingScreen-Right");
 
             debugFont = Content.Load<SpriteFont>("DebugFont");
             Globals.Font = new Dictionary<string, SpriteFont>();
@@ -191,12 +189,25 @@ namespace StyleStar
             var folders = di.EnumerateDirectories();
             foreach (var folder in folders)
             {
+                // If a folder contains an *.ssi file, use that to load charts
+                // Otherwise, load each chart individually
                 var files = folder.EnumerateFiles();
-                var charts = files.Where(f => f.FullName.EndsWith(".ssf"));
-                if (charts != null && charts.Count() > 0)
+                var info = files.Where(f => f.FullName.EndsWith(Defines.InfoExtension));
+                if (info != null && info.Count() > 0)
                 {
-                    foreach (var chart in charts)
-                        songlist.Add(new SongMetadata(chart.FullName));
+                    foreach (var file in info)
+                    {
+                        songlist.Add(new SongMetadata(file.FullName));
+                    }
+                }
+                else
+                {
+                    var charts = files.Where(f => f.FullName.EndsWith(Defines.ChartExtension));
+                    if (charts != null && charts.Count() > 0)
+                    {
+                        foreach (var chart in charts)
+                            songlist.Add(new SongMetadata(chart.FullName));
+                    }
                 }
             }
             folderParams.Add(new FolderParams() { Type = SortType.Title, Name = "SORT BY\nTITLE" });
@@ -245,6 +256,7 @@ namespace StyleStar
                             {
                                 enterLoadingScreen = false;
                                 leavingLoadingScreen = true;
+                                LoadSong(songlist[currentSongIndex]);
                                 currentMode = Mode.GamePlay;
                                 loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                                 break;
@@ -317,8 +329,6 @@ namespace StyleStar
                         }
                         else
                         {
-                            LoadSong(songlist[currentSongIndex]);
-                            //currentMode = Mode.GamePlay;
                             enterLoadingScreen = true;
                             loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                         }
@@ -339,6 +349,9 @@ namespace StyleStar
                             currentSongIndex = 0;
                         }
                     }
+
+                    if (kbState.IsKeyDown(Keys.F2) && !prevKbState.IsKeyDown(Keys.F2))
+                        Globals.IsAutoModeEnabled = !Globals.IsAutoModeEnabled;
 
                     break;
                 case Mode.Loading:
@@ -395,30 +408,46 @@ namespace StyleStar
                     // Temporary keyboard inputs
                     if (!TouchScreenConnected)
                     {
-                        //for (int i = 0; i < 8; i++)
-                        //{
-                        //    if (kbState.IsKeyDown(touchkeys[i]) && !prevKbState.IsKeyDown(touchkeys[i]))
-                        //    {
-                        //        if (stepList.Count > 0)
-                        //            closestNoteBeat = stepList.First().BeatLocation;
-                        //        uint id = (uint)random.Next(0, int.MaxValue);
-                        //        touchCollection.Points.Add(new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id });
-                        //        KeyDictionary.Add(touchkeys[i], id);
+                        bool horzMotion = false;
+                        for (int i = 0; i < 8; i++)
+                        {
+                            if (kbState.IsKeyDown(touchkeys[i]) && !prevKbState.IsKeyDown(touchkeys[i]))
+                            {
+                                bool checkLeft = true;
+                                bool checkRight = true;
+                                if (i == 0)
+                                    checkLeft = false;
+                                if (i == 8)
+                                    checkRight = false;
 
-                        //        motionCollection.JumpBeat = double.NaN;
-                        //    }
-                        //    else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
-                        //    {
-                        //        if (touchCollection.Points.Count(pt => pt.ID == KeyDictionary[touchkeys[i]]) > 0)
-                        //        {
-                        //            touchCollection.RemoveID(KeyDictionary[touchkeys[i]]);
-                        //            KeyDictionary.Remove(touchkeys[i]);
-                        //        }
+                                if (checkLeft && prevKeys[i - 1])
+                                    horzMotion |= true;
+                                else if (checkRight && prevKeys[i + 1])
+                                    horzMotion |= true;
+                                else
+                                    horzMotion |= false;
 
-                        //        if (touchCollection.Points.Count == 0)
-                        //            motionCollection.JumpBeat = currentBeat;
-                        //    }
-                        //}
+                                if (stepList.Count > 0)
+                                    closestNoteBeat = stepList.First().BeatLocation;
+                                uint id = (uint)random.Next(0, int.MaxValue);
+                                if(touchCollection.Points.TryAdd(id, new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id }));
+                                    KeyDictionary.Add(touchkeys[i], id);
+
+                                motionCollection.JumpBeat = double.NaN;
+                                prevKeys[i] = true;
+                            }
+                            else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
+                            {
+                                TouchPoint pt;
+                                if(touchCollection.Points.TryRemove(KeyDictionary[touchkeys[i]], out pt))
+                                    KeyDictionary.Remove(touchkeys[i]);
+
+                                if (touchCollection.Points.Count == 0)
+                                    motionCollection.JumpBeat = currentBeat;
+
+                                prevKeys[i] = false;
+                            }
+                        }
                     }
                     if (kbState.IsKeyDown(Keys.Space) && !prevKbState.IsKeyDown(Keys.Space))
                         motionCollection.DownBeat = currentBeat;
@@ -436,6 +465,16 @@ namespace StyleStar
                             step.HitResult.WasHit = true;   // Let everyone else know this note has been resolved
                             step.HitResult.Difference = Timing.MissFlag;
                             currentSongNotes.AddToScore(NoteType.Step, step.HitResult.Difference);
+                        }
+                        else if (Globals.IsAutoModeEnabled)
+                        {
+                            if(Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
+                            {
+                                step.HitResult.WasHit = true;
+                                step.HitResult.Difference = 0;
+                                gradeCollection.Set(gameTime, step);
+                                currentSongNotes.AddToScore(NoteType.Step, step.HitResult.Difference);
+                            }
                         }
                         else if (touchCollection.Points.Count > 0)
                         {
@@ -461,6 +500,16 @@ namespace StyleStar
                                 hold.StartNote.HitResult.Difference = Timing.MissFlag;
                                 currentSongNotes.AddToScore(NoteType.Hold, hold.StartNote.HitResult.Difference);
                             }
+                            else if (Globals.IsAutoModeEnabled)
+                            {
+                                if (Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
+                                {
+                                    hold.StartNote.HitResult.WasHit = true;
+                                    hold.StartNote.HitResult.Difference = 0;
+                                    gradeCollection.Set(gameTime, hold.StartNote);
+                                    currentSongNotes.AddToScore(NoteType.Hold, hold.StartNote.HitResult.Difference);
+                                }
+                            }
                             else if (touchCollection.Points.Count > 0)
                             {
                                 if (touchCollection.CheckHit(hold.StartNote))
@@ -472,14 +521,38 @@ namespace StyleStar
                         }
 
                         // Check any shuffles separately
-                        var shuffles = hold.Notes.Where(x => x.Type == NoteType.Shuffle);
+                        var shuffles = hold.Notes.Where(x => x.Type == NoteType.Shuffle && x.HitResult.WasHit == false);
                         foreach (var shuffle in shuffles)
                         {
                             // Check window around shuffle and see if the foot is moving in the correct direction
+                            var stepTimeMS = Globals.GetSecAtBeat(shuffle.BeatLocation) - currentTime;
+                            if (stepTimeMS < -NoteTiming.Bad)
+                            {
+                                shuffle.HitResult.WasHit = true; // Let everyone else know this note has been resolved
+                                shuffle.HitResult.Difference = Timing.MissFlag;
+                                currentSongNotes.AddToScore(NoteType.Hold, shuffle.HitResult.Difference);
+                            }
+                            else if (Globals.IsAutoModeEnabled)
+                            {
+                                if(Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
+                                {
+                                    shuffle.HitResult.WasHit = true;
+                                    shuffle.HitResult.Difference = 0;
+                                    currentSongNotes.AddToScore(NoteType.Hold, shuffle.HitResult.Difference);
+                                }
+                            }
+                            else if (horzMotion)
+                            {
+                                // Gotta see if we even remotely swiped the right area
+                            }
                         }
 
                         // Let the note figure out itself whether it's being held and scoring
-                        hold.CheckHold(touchCollection, currentBeat);
+                        var holdResult = hold.CheckHold(touchCollection, currentBeat);
+                        if (holdResult == HitState.Hit)
+                            currentSongNotes.AddToScore(NoteType.Hold, NoteTiming.Perfect);
+                        else if (holdResult == HitState.Miss)
+                            currentSongNotes.AddToScore(NoteType.Hold, Timing.MissFlag);
                     }
 
                     // Check if we've hit any motions
@@ -492,6 +565,16 @@ namespace StyleStar
                             motion.HitResult.WasHit = true;
                             motion.HitResult.Difference = Timing.MissFlag;
                             currentSongNotes.AddToScore(NoteType.Motion, motion.HitResult.Difference);
+                        }
+                        else if (Globals.IsAutoModeEnabled)
+                        {
+                            if (Math.Abs(motionTimeMS) < NoteTiming.AutoTolerance)
+                            {
+                                motion.HitResult.WasHit = true;
+                                motion.HitResult.Difference = 0;
+                                gradeCollection.Set(gameTime, motion);
+                                currentSongNotes.AddToScore(NoteType.Motion, motion.HitResult.Difference);
+                            }
                         }
                         else if (motion.Motion == Motion.Down && !double.IsNaN(motionCollection.DownBeat))
                         {
@@ -528,11 +611,9 @@ namespace StyleStar
                     }
 
                     if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down))
-                        //Globals.BeatToWorldYUnits /= 2;
                         Globals.SpeedScale -= 0.5;
 
                     if (kbState.IsKeyDown(Keys.Up) && !prevKbState.IsKeyDown(Keys.Up))
-                        //Globals.BeatToWorldYUnits *= 2;
                         Globals.SpeedScale += 0.5;
 
                     if (kbState.IsKeyDown(Keys.Delete) && !prevKbState.IsKeyDown(Keys.Delete))
@@ -711,7 +792,15 @@ namespace StyleStar
                             spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
                             spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
                             spriteBatch.Draw(Globals.Textures["SsDifficultyBg"], cardOffset, Color.White);
-                            spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)songlist[i].Difficulty), 20, 39), Color.Black);
+                            if (songlist[i].IsMetadataFile)
+                            {
+                                foreach (var song in songlist[i].ChildMetadata)
+                                {
+                                    spriteBatch.DrawString(Globals.Font["Franklin"], song.Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)song.Difficulty), 20, 39), Color.Black);
+                                }
+                            }
+                            else
+                                spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)songlist[i].Difficulty), 20, 39), Color.Black);
                             spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                         }
 
@@ -720,9 +809,19 @@ namespace StyleStar
 
                         spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].Title, new Vector2(1220, 560), Color.White, 0.3f, Justification.Bottom | Justification.Right);
                         spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].Artist, new Vector2(1220, 600), Color.White, 0.2f, Justification.Bottom | Justification.Right);
-                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0") + " BPM", new Vector2(1220, 640), Color.White, 0.18f, Justification.Bottom | Justification.Right);
+                        // Metadata may not contain BPM info, if it's empty, check the first song
+                        string bpm = "???";
+                        if (songlist[currentSongIndex].BpmIndex.Count > 0)
+                            bpm = songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
+                        else if (songlist[currentSongIndex].IsMetadataFile && songlist[currentSongIndex].BpmIndex.Count == 0 && songlist[currentSongIndex].ChildMetadata.Count > 0)
+                            bpm = songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 0.18f, Justification.Bottom | Justification.Right);
                         spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "Choreo: " + songlist[currentSongIndex].Designer, new Vector2(1220, 680), Color.White, 0.14f, Justification.Bottom | Justification.Right);
                     }
+
+                    if(Globals.IsAutoModeEnabled)
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Width - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
+
                     spriteBatch.End();
 
                     if (enterLoadingScreen || leavingLoadingScreen)
@@ -830,11 +929,15 @@ namespace StyleStar
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), currentSongNotes.Metadata.Difficulty).ToUpper(), new Vector2(1200, yTopRow), Color.White, 0.08f, Justification.Center);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Title, new Vector2(1150, yTopRow), Color.White, 0.2f, Justification.Right);
                     float yBottomRow = 685f;
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "1.0", new Vector2(50, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), new Vector2(50, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.00"), new Vector2(120, yBottomRow), Color.White, 0.25f, Justification.Left | Justification.Bottom);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "/ 100.00%", new Vector2(315, yBottomRow), Color.White, 0.18f, Justification.Left | Justification.Bottom);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Artist, new Vector2(1150, yBottomRow), Color.White, 0.1f, Justification.Right | Justification.Bottom);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
+
+                    if (Globals.IsAutoModeEnabled)
+                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Width - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
+
                     spriteBatch.End();
 
                     // Draw hit stats
@@ -846,6 +949,7 @@ namespace StyleStar
                         spriteBatch.Begin();
                         spriteBatch.DrawString(debugFont, "Steps: " + numStepHit + " / " + currentSongNotes.Steps.Count, new Vector2(1100, 300), Color.White);
                         spriteBatch.DrawString(debugFont, "Motions: " + numMotionHit + " / " + currentSongNotes.Motions.Count, new Vector2(1100, 320), Color.White);
+                        spriteBatch.DrawString(debugFont, "Combo: " + currentSongNotes.CurrentCombo, new Vector2(1100, 340), Color.White);
                         spriteBatch.End();
                     }
 
@@ -881,23 +985,20 @@ namespace StyleStar
         {
             var duration = gt.TotalGameTime.TotalMilliseconds - loadingScreenTime;
             var ratio = enterLoadingScreen ? 1 - duration / loadingScreenTransition : duration / loadingScreenTransition;
-            var xL = Math.Min(0, 0 - Width / 2 * ratio);
-            var xR = Math.Max(Width / 2, Width / 2 + Width / 2 * ratio);
-            var yT = Math.Min(0, 0 - Height / 2 * ratio);
-            var yB = Math.Max(Height / 2, Height / 2 + Height / 2 * ratio);
+            var loadScreenWidth = 1320 / Globals.CurrentScalingFactor;
+            var loadScreenHeight = 1080 / Globals.CurrentScalingFactor;
+
+            var xLeft = Math.Min(0, 0 - loadScreenWidth * ratio);
+            var xRight = Math.Max(Width - loadScreenWidth, Width - (loadScreenWidth) * (1 - ratio));
+
             spriteBatch.Begin();
-            loadingRect.X = (int)xL;
-            loadingRect.Y = (int)yT;
-            loadingRect.Width = Width / 2;
-            loadingRect.Height = Height / 2;
-            spriteBatch.Draw(loadingScreenImageUL, loadingRect, Color.White);
-            loadingRect.X = (int)xR;
-            spriteBatch.Draw(loadingScreenImageUR, loadingRect, Color.White);
-            loadingRect.X = (int)xL;
-            loadingRect.Y = (int)yB;
-            spriteBatch.Draw(loadingScreenImageLL, loadingRect, Color.White);
-            loadingRect.X = (int)xR;
-            spriteBatch.Draw(loadingScreenImageLR, loadingRect, Color.White);
+            loadingRect.X = (int)xLeft;
+            loadingRect.Y = 0;
+            loadingRect.Width = (int)loadScreenWidth;
+            loadingRect.Height = (int)loadScreenHeight;
+            spriteBatch.Draw(loadingScreenLeft, loadingRect, Color.White);
+            loadingRect.X = (int)xRight;
+            spriteBatch.Draw(loadingScreenRight, loadingRect, Color.White);
             spriteBatch.End();
         }
 

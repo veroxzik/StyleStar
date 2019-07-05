@@ -19,7 +19,10 @@ namespace StyleStar
 
         public bool IsPlayerHolding { get; private set; }
         private QuadTexture HitTexture;
-        
+
+        // Start note is not included since it already has its own grade
+        public List<HoldGrade> GradePoints { get; private set; } = new List<HoldGrade>();
+
         public Hold(double beatLoc, int laneIndex, int width, Side side)
         {
             StartNote = new Note(beatLoc, laneIndex, width, side);
@@ -28,12 +31,29 @@ namespace StyleStar
 
         public void AddNote(Note note)
         {
+            var lastNote = Notes.Count == 0 ? StartNote : Notes.Last();
+
             // If this note is marked as hold, determine if it should be reclassified as a slide
-            if(note.Type == NoteType.Hold)
+            if (note.Type == NoteType.Hold)
             {
-                var lastNote = Notes.Count == 0 ? StartNote : Notes.Last();
                 if (lastNote.LaneIndex != note.LaneIndex || lastNote.Width != note.Width)
                     note.Type = NoteType.Slide;
+            }
+
+            // Determine if the note-to-be-added needs extra grade points
+            if (note.Type == NoteType.Hold || note.Type == NoteType.Slide)
+            {
+                // Holds and slides are measured on n-beats after the start note (except the last one)
+                for (double beat = (StartNote.BeatLocation + 1); beat < note.BeatLocation; beat += 1.0)
+                {
+                    // If a point doesn't already exist at this time
+                    if (GradePoints.Find(x => x.GradeBeat == beat) == null)
+                    {
+                        // And if a shuffle doesn't exist at this time
+                        if(Notes.Find(x=>x.BeatLocation == beat && x.Type == NoteType.Shuffle) == null)
+                            GradePoints.Add(new HoldGrade() { GradeBeat = beat });  // Add a grade point
+                    }
+                }
             }
 
             Notes.Add(note);
@@ -86,12 +106,12 @@ namespace StyleStar
             HitTexture = new QuadTexture(Globals.Textures["HitTexture"]);
         }
 
-        public void CheckHold(TouchCollection tc, double currentBeat)
+        public HitState CheckHold(TouchCollection tc, double currentBeat)
         {
             if (currentBeat < StartNote.BeatLocation)
             {
                 IsPlayerHolding = false;
-                return;
+                return HitState.Unknown;
             }
 
             Note firstNote, secondNote;
@@ -103,7 +123,7 @@ namespace StyleStar
             else if (Notes.Count < 2 || Notes.Last().BeatLocation < currentBeat)
             {
                 IsPlayerHolding = false;
-                return;
+                return HitState.Unknown;
             }
             else
             {
@@ -111,10 +131,10 @@ namespace StyleStar
                 secondNote = Notes.First(x => x.BeatLocation >= currentBeat);
             }
 
-            if(firstNote == null || secondNote == null)
+            if (firstNote == null || secondNote == null)
             {
                 IsPlayerHolding = false;
-                return;
+                return HitState.Unknown;
             }
 
             bool useFirstNote = false;
@@ -126,7 +146,7 @@ namespace StyleStar
                 case NoteType.Step:         // Shouldn't be possible
                 case NoteType.Motion:
                     IsPlayerHolding = false;
-                    return;
+                    return HitState.Unknown;
                 case NoteType.Hold:         // Lane index and width is the same as the first note
                 case NoteType.Shuffle:      // Actual shuffle motion is not calculated here (but perhaps we need to figure in some dead space?)
                     useFirstNote = true;
@@ -144,14 +164,14 @@ namespace StyleStar
                     break;
             }
 
-            if(useFirstNote)
+            if (useFirstNote)
             {
                 noteMin = Globals.CalcTransX(firstNote, Side.Left);
                 noteMax = Globals.CalcTransX(firstNote, Side.Right);
             }
 
             var validPoints = tc.Points.Where(x => x.Value.MinX < noteMax && x.Value.MaxX > noteMin).ToList();
-            if (validPoints.Count == 0)
+            if (validPoints.Count == 0 && !Globals.IsAutoModeEnabled)
             {
                 IsPlayerHolding = false;
             }
@@ -160,6 +180,25 @@ namespace StyleStar
                 IsPlayerHolding = true;
                 HitTexture.SetVerts((float)noteMax, (float)noteMin, (float)-Globals.StepNoteHeightOffset, (float)Globals.StepNoteHeightOffset, 0.1f);
             }
+
+            var gradeBeat = GradePoints.Find(x => Math.Abs(x.GradeBeat - currentBeat) < NoteTiming.BeatTolerance && x.State == HitState.Unknown);
+            if (gradeBeat != null)
+            {
+                if (IsPlayerHolding)
+                    gradeBeat.State = HitState.Hit;
+                else
+                    gradeBeat.State = HitState.Miss;
+
+                return gradeBeat.State;
+            }
+
+            return HitState.Unknown;
         }
+    }
+
+    public class HoldGrade
+    {
+        public double GradeBeat;
+        public HitState State;
     }
 }

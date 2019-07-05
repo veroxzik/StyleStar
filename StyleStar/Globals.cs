@@ -15,9 +15,8 @@ namespace StyleStar
         public static ContentManager ContentManager { get; set; }
         public static GraphicsDeviceManager GraphicsManager { get; set; }
 
-
+        public static double NoteSpeed { get; set; } = 50;    // World units per second
         public static double BeatToWorldXUnits { get; set; } = 3;
-        public static double Beat120ToWorldYUnits { get; set; } = 32;
         public static double SpeedScale { get; set; } = 1.0;
         public static double StepNoteHeightOffset { get; set; } = 5;
         public static double ShuffleNoteHeightOffset { get; set; } = 7.5;
@@ -27,6 +26,8 @@ namespace StyleStar
         public static int NumLanes = 16;
         public static float GradeZoneWidth { get; set; } = 48f;
         public static float NoteLaneAccentWidth { get; set; } = 3f;
+
+        public static float CurrentScalingFactor { get; set; } = 1.5f;
 
         public static float FootWidth { get; set; } = 4f;
 
@@ -43,6 +44,8 @@ namespace StyleStar
         public static BasicEffect Effect;
 
         public static Dictionary<string, SpriteFont> Font { get; set; }
+
+        public static bool IsAutoModeEnabled { get; set; } = false;
 
         public static double CalcTransX(Note note)
         {
@@ -104,12 +107,12 @@ namespace StyleStar
                         i = BpmEvents.Count;
                     else
                     {
-                        curDist += (BpmEvents[i + 1].StartBeat - BpmEvents[i].StartBeat) * Beat120ToWorldYUnits * 120 / BpmEvents[i].BPM * SpeedScale;
+                        curDist += (NoteSpeed * SpeedScale * 60 / BpmEvents[i].BPM) * (BpmEvents[i + 1].StartBeat - BpmEvents[i].StartBeat);
                     }
                 }
             }
 
-            return curDist + (beat - evt.StartBeat) * Beat120ToWorldYUnits * 120 / evt.BPM * SpeedScale;
+            return curDist + (NoteSpeed * SpeedScale * 60 / evt.BPM) * (beat - evt.StartBeat);
         }
 
         public static double GetSecAtBeat(double beat)

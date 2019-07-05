@@ -20,6 +20,9 @@ namespace StyleStar
         public double CurrentScore { get; private set; }
         public int TotalNotes { get; private set; }
 
+        public int CurrentCombo { get; private set; }
+        public int MaxCombo { get; private set; }
+
         public NoteCollection()
         {
 
@@ -136,7 +139,12 @@ namespace StyleStar
                 Markers.Add(new BeatMarker(i));
 
             TotalNotes += Steps.Count();
-            TotalNotes += Holds.Count();    // This is not true, need to add on-beat counters
+            TotalNotes += Holds.Count();
+            foreach (var hold in Holds)
+            {
+                TotalNotes += hold.GradePoints.Count;   // Additional beat counters for holds/slides
+                TotalNotes += hold.Notes.Count(x => x.Type == NoteType.Shuffle);
+            }
             TotalNotes += Motions.Count();
 
             return Metadata;
@@ -256,15 +264,28 @@ namespace StyleStar
                 case NoteType.Step:
                 case NoteType.Hold:
                     if (diff == Timing.MissFlag)
+                    {
+                        MaxCombo = Math.Max(MaxCombo, CurrentCombo);
+                        CurrentCombo = 0;
                         return;
+                    }
                     else
                     {
                         if (Math.Abs(diff) <= NoteTiming.Perfect)
+                        {
                             CurrentScore += 1.0;
+                            CurrentCombo++;
+                        }
                         else if (Math.Abs(diff) <= NoteTiming.Great)
+                        {
                             CurrentScore += 0.9;
+                            CurrentCombo++;
+                        }
                         else if (Math.Abs(diff) <= NoteTiming.Good)
+                        {
                             CurrentScore += 0.5;
+                            CurrentCombo++;
+                        }
                     }
                     break;
                 case NoteType.Slide:
@@ -273,7 +294,15 @@ namespace StyleStar
                     break;
                 case NoteType.Motion:
                     if (diff != Timing.MissFlag)
+                    {
                         CurrentScore += 1.0;
+                        CurrentCombo++;
+                    }
+                    else
+                    {
+                        MaxCombo = Math.Max(MaxCombo, CurrentCombo);
+                        CurrentCombo = 0;
+                    }
                     break;
                 default:
                     break;

@@ -76,17 +76,7 @@ namespace StyleStar
             var evt = Globals.BpmEvents.Where(x => sec >= x.StartSeconds).LastOrDefault();
             if (evt == null)
                 evt = Globals.BpmEvents[0];
-            //if (evt.Count() == 0)
-            //{
-            //    Globals.CurrentBpm = BpmEvents[0].BPM;
-            //    return Globals.CurrentBpm * sec / 60;
-            //}
-            //else
-            //{
-            // Globals.CurrentBpm = evt.BPM;    // This should never yield multiple results
-            //return (Globals.CurrentBpm * (sec - evt.StartSeconds) / 60) + evt.StartBeat;
             return (evt.BPM * (sec - evt.StartSeconds) / 60) + evt.StartBeat;
-            //}
         }  
     }
 }

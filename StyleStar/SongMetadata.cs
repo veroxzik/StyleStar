@@ -15,6 +15,8 @@ namespace StyleStar
     {
         public string FilePath { get; set; }
         public string ChartFullPath { get; set; }
+        public bool IsMetadataFile { get; set; }
+        public List<SongMetadata> ChildMetadata { get; private set; } = new List<SongMetadata>();
         public string SongFilename { get; set; }
         public Dictionary<int, double> BpmIndex = new Dictionary<int, double>();
         public List<BpmChangeEvent> BpmEvents = new List<BpmChangeEvent>();
@@ -33,6 +35,26 @@ namespace StyleStar
         public SongMetadata() { }
 
         public SongMetadata(string fileName)
+        {
+            Parse(fileName);
+        }
+
+        public SongMetadata(SongMetadata parent, string fileName)
+        {
+            SongFilename = parent.SongFilename;
+            PlaybackOffset = parent.PlaybackOffset;
+            Title = parent.Title;
+            Artist = parent.Artist;
+            Designer = parent.Designer;
+            ColorFore = parent.ColorFore;
+            ColorBack = parent.ColorBack;
+            ColorAccent = parent.ColorAccent;
+            BpmEvents.AddRange(parent.BpmEvents);
+
+            Parse(fileName);
+        }
+
+        private void Parse(string fileName)
         {
             ChartFullPath = Path.GetFullPath(fileName);
             FilePath = Path.GetDirectoryName(fileName) + @"\";
@@ -69,7 +91,19 @@ namespace StyleStar
                     if (Regex.IsMatch(line, "(#BPM)"))
                     {
                         string[] bpmParse = line.Split(new string[] { "#BPM", ": " }, StringSplitOptions.RemoveEmptyEntries);
-                        BpmIndex.Add(Convert.ToInt32(bpmParse[0]), Convert.ToDouble(bpmParse[1]));
+                        if (!BpmIndex.ContainsKey(Convert.ToInt32(bpmParse[0])))
+                            BpmIndex.Add(Convert.ToInt32(bpmParse[0]), Convert.ToDouble(bpmParse[1]));
+                        else
+                            // Print an error here in some log somewhere
+                            Console.WriteLine("When parsing " + fileName + ", multiple BPM definitions were found with the same ID number.");
+                    }
+
+                    if (StringExtensions.TrySearchTag(line, "CHART", out parse))
+                    {
+                        IsMetadataFile = true;
+                        if (!parse.EndsWith(Defines.ChartExtension))
+                            parse += Defines.ChartExtension;
+                        ChildMetadata.Add(new SongMetadata(FilePath + parse));
                     }
                 }
             }
@@ -82,54 +116,6 @@ namespace StyleStar
                     AlbumImage = Texture2D.FromStream(Globals.GraphicsManager.GraphicsDevice, fs);
                 }
             }
-
-        }
-
-        public void Draw(SpriteBatch sb, int index)
-        {
-            // Calc revised point
-            int x = SongSelection.StartPoint.X - index * (SongSelection.RowOffset + SongSelection.BgBuffer);
-            int y = SongSelection.StartPoint.Y + index * (SongSelection.BgHeight + SongSelection.BgBuffer);
-
-            // Title bound
-            Rectangle tempTitleRect = new Rectangle(
-                x + SongSelection.TitleRect.X, 
-                y + SongSelection.TitleRect.Y, 
-                SongSelection.TitleRect.Width, 
-                SongSelection.TitleRect.Height);
-
-            Rectangle tempArtistRect = new Rectangle(
-                x + SongSelection.ArtistRect.X,
-                y + SongSelection.ArtistRect.Y,
-                SongSelection.ArtistRect.Width - SongSelection.BgBuffer,
-                SongSelection.ArtistRect.Height);
-
-            Rectangle levelTextRect = new Rectangle(
-                x + 278,
-                y + 32,
-                40,
-                30);
-
-            sb.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-            //sb.Draw(Globals.Textures["SongBG"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.DarkGray);
-            if (index == 0)
-                sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.Yellow);
-            else
-                sb.Draw(Globals.Textures["SsOuterFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), ThemeColors.FolderBGColor);
-            sb.Draw(Globals.Textures["SsMainFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), ThemeColors.FolderBGColor);
-            sb.Draw(AlbumImage, new Rectangle(x + SongSelection.AlbumPoint.X, y + SongSelection.AlbumPoint.Y, SongSelection.AlbumSize, SongSelection.AlbumSize), Color.White);
-            //sb.Draw(Globals.Textures["SongDifficulty"], new Rectangle(x + SongSelection.DifficultRect.X, y + SongSelection.DifficultRect.Y, SongSelection.DifficultRect.Width, SongSelection.DifficultRect.Height), Color.Green);
-            sb.Draw(Globals.Textures["SsAlbumFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), ThemeColors.FolderBGColor);
-            sb.Draw(Globals.Textures["SsDifficultyFrame"], new Rectangle(x, y, SongSelection.BgWidth, SongSelection.BgHeight), Color.Green);
-            //Util.DrawString(sb, Globals.Font["Bold"], Level.ToString(), levelTextRect.Shift(1, 1), Color.Black);
-            Util.DrawString(sb, Globals.Font["Bold"], Level.ToString(), levelTextRect, Color.White);
-            //sb.DrawString(Globals.Font["Bold"], "LEVEL", new Vector2(levelTextRect.X + 5 + 1, levelTextRect.Y + 105 - 1), Color.Black, (float)-Math.PI / 2, new Vector2(0, 0), 0.12f, new SpriteEffects(), 0);
-            sb.DrawString(Globals.Font["Bold"], "LVL", new Vector2(levelTextRect.X, levelTextRect.Y + 75), Color.White, (float)-Math.PI / 2, new Vector2(0, 0), 0.12f, new SpriteEffects(), 0);
-            //Util.DrawString(sb, Globals.Font["Regular"], Title, tempTitleRect.Shift(1, 1), Color.Black);
-            Util.DrawString(sb, Globals.Font["Regular"], Title, tempTitleRect, Color.White);
-            //Util.DrawString(sb, Globals.Font["Regular"], Artist, tempArtistRect.Shift(1, 1), Color.Black);
-            Util.DrawString(sb, Globals.Font["Regular"], Artist, tempArtistRect, Color.White);
-            sb.End();
         }
     }
 }
