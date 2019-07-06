@@ -173,6 +173,9 @@ namespace StyleStar
             Textures["SsAccentStar"] = ContentManager.Load<Texture2D>("SongSelection_AccentStar");
             Textures["SsAccentAlbum"] = ContentManager.Load<Texture2D>("SongSelection_AccentAlbum");
             Textures["SsDifficultyBg"] = ContentManager.Load<Texture2D>("SongSelection_DifficultyBG");
+            Textures["SsActiveDifficulty0"] = ContentManager.Load<Texture2D>("SongSelection_ActiveDifficulty0");
+            Textures["SsActiveDifficulty1"] = ContentManager.Load<Texture2D>("SongSelection_ActiveDifficulty1");
+            Textures["SsActiveDifficulty2"] = ContentManager.Load<Texture2D>("SongSelection_ActiveDifficulty2");
 
             Textures["SsFolderSelect"] = ContentManager.Load<Texture2D>("SongSelection_FolderSelect");
             Textures["SsSongSelect"] = ContentManager.Load<Texture2D>("SongSelection_SongSelect");

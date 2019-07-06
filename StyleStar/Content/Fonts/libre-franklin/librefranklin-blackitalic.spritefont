@@ -57,6 +57,30 @@ with.
         <Start>&#32;</Start>
         <End>&#126;</End>
       </CharacterRegion>
+	  <CharacterRegion>
+        <Start>&#160;</Start>
+        <End>&#255;</End>
+      </CharacterRegion>
+	  <CharacterRegion>
+        <Start>&#256;</Start>
+        <End>&#383;</End>
+      </CharacterRegion>
+	  <CharacterRegion>
+        <Start>&#384;</Start>
+        <End>&#539;</End>
+      </CharacterRegion>
+	  <CharacterRegion>
+        <Start>&#567;</Start>
+        <End>&#567;</End>
+      </CharacterRegion>
+	  <CharacterRegion>
+        <Start>&#601;</Start>
+        <End>&#601;</End>
+      </CharacterRegion>
+	  <CharacterRegion>
+        <Start>&#700;</Start>
+        <End>&#808;</End>
+      </CharacterRegion>
     </CharacterRegions>
   </Asset>
 </XnaContent>
