@@ -35,117 +35,124 @@ namespace StyleStar
             Dictionary<int, int> holdIDlist = new Dictionary<int, int>();
             Dictionary<int, SlideCollection> tempSlideDict = new Dictionary<int, SlideCollection>();
 
-            using (StreamReader sr = new StreamReader(fileName))
+            try
             {
-                while (!sr.EndOfStream)
+                using (StreamReader sr = new StreamReader(fileName))
                 {
-                    string line = sr.ReadLine();
-
-                    // Whatever metadata stuff isn't covered in SongMetadata
-
-                    // Regex match for standard steps
-                    if (Regex.Match(line, "[#][0-9]{3}[1]").Success)
+                    while (!sr.EndOfStream)
                     {
-                        var parsed = ParseLine(line);
-                        double noteSub = 1.0 / parsed.Notes.Count;
-                        for (int i = 0; i < parsed.Notes.Count; i++)
+                        string line = sr.ReadLine();
+
+                        // Whatever metadata stuff isn't covered in SongMetadata
+
+                        // Regex match for standard steps
+                        if (Regex.Match(line, "[#][0-9]{3}[1]").Success)
                         {
-                            switch (parsed.Notes[i].Item1)
+                            var parsed = ParseLine(line);
+                            double noteSub = 1.0 / parsed.Notes.Count;
+                            for (int i = 0; i < parsed.Notes.Count; i++)
                             {
-                                case 1: // Left Step
-                                    Steps.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Side.Left));
-                                    break;
-                                case 2: // Right Step
-                                    Steps.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Side.Right));
-                                    break;
-                                case 3: // Motion Up
-                                    Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), 0, 16, Motion.Up));
-                                    break;
-                                case 4: // Motion Down
-                                    Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), 0, 16, Motion.Down));
-                                    break;
-                                default:    // Rest notes / spacers (0) are ignored
-                                    break;
+                                switch (parsed.Notes[i].Item1)
+                                {
+                                    case 1: // Left Step
+                                        Steps.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Side.Left));
+                                        break;
+                                    case 2: // Right Step
+                                        Steps.Add(new Note(4 * (parsed.Measure + i * noteSub), parsed.LaneIndex, parsed.Notes[i].Item2, Side.Right));
+                                        break;
+                                    case 3: // Motion Up
+                                        Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), 0, 16, Motion.Up));
+                                        break;
+                                    case 4: // Motion Down
+                                        Motions.Add(new Note(4 * (parsed.Measure + i * noteSub), 0, 16, Motion.Down));
+                                        break;
+                                    default:    // Rest notes / spacers (0) are ignored
+                                        break;
+                                }
                             }
                         }
-                    }
-                    // Regex match for hold/slides
-                    else if (Regex.IsMatch(line, "[#][0-9]{3}[2-3]"))
-                    {
-                        var parsed = ParseLine(line);
-                        double noteSub = 1.0 / parsed.Notes.Count;
-                        for (int i = 0; i < parsed.Notes.Count; i++)
+                        // Regex match for hold/slides
+                        else if (Regex.IsMatch(line, "[#][0-9]{3}[2-3]"))
                         {
-                            Side side = parsed.NoteClass == 2 ? Side.Left : Side.Right;
-
-                            switch (parsed.Notes[i].Item1)
+                            var parsed = ParseLine(line);
+                            double noteSub = 1.0 / parsed.Notes.Count;
+                            for (int i = 0; i < parsed.Notes.Count; i++)
                             {
-                                case 1: // Start a new note
-                                    // Check to see if a hold is already active-- if so, commit it and start a new one
-                                    if(tempSlideDict.ContainsKey(parsed.NoteIdentifier))
-                                    {
-                                        CommitHold(tempSlideDict[parsed.NoteIdentifier]);
-                                        tempSlideDict.Remove(parsed.NoteIdentifier);
-                                    }
-                                    // Create a collection
-                                    tempSlideDict.Add(parsed.NoteIdentifier, new SlideCollection());
-                                    // Add this note to it
-                                    tempSlideDict[parsed.NoteIdentifier].Notes.Add(new Tuple<NoteParse, int>(parsed, i));
-                                    break;
-                                case 2: // End a hold note with no shuffle
-                                case 3: // End a hold note with a shuffle
-                                case 4: // Add a midpoint with no shuffle
-                                case 5: // Add a midpoint with a shuffle
-                                    if (!tempSlideDict.ContainsKey(parsed.NoteIdentifier))
-                                        tempSlideDict.Add(parsed.NoteIdentifier, new SlideCollection());    // Add a new one (it will fuck up shit if this happens)
-                                                                                                            // Add this note to it
-                                    tempSlideDict[parsed.NoteIdentifier].Notes.Add(new Tuple<NoteParse, int>(parsed, i));
-                                    break;
-                                default:    // Rest notes / spacers (0) are ignored
-                                    break;
-                            }
-                        }
+                                Side side = parsed.NoteClass == 2 ? Side.Left : Side.Right;
 
-                    }
-                    // Parse BPM changes
-                    else if (Regex.IsMatch(line, "[#][0-9]{3}(08)"))
-                    {
-                        var parsed = ParseLine(line);
-                        double noteSub = 1.0 / parsed.Notes.Count;
-                        for (int i = 0; i < parsed.Notes.Count; i++)
+                                switch (parsed.Notes[i].Item1)
+                                {
+                                    case 1: // Start a new note
+                                            // Check to see if a hold is already active-- if so, commit it and start a new one
+                                        if (tempSlideDict.ContainsKey(parsed.NoteIdentifier))
+                                        {
+                                            CommitHold(tempSlideDict[parsed.NoteIdentifier]);
+                                            tempSlideDict.Remove(parsed.NoteIdentifier);
+                                        }
+                                        // Create a collection
+                                        tempSlideDict.Add(parsed.NoteIdentifier, new SlideCollection());
+                                        // Add this note to it
+                                        tempSlideDict[parsed.NoteIdentifier].Notes.Add(new Tuple<NoteParse, int>(parsed, i));
+                                        break;
+                                    case 2: // End a hold note with no shuffle
+                                    case 3: // End a hold note with a shuffle
+                                    case 4: // Add a midpoint with no shuffle
+                                    case 5: // Add a midpoint with a shuffle
+                                        if (!tempSlideDict.ContainsKey(parsed.NoteIdentifier))
+                                            tempSlideDict.Add(parsed.NoteIdentifier, new SlideCollection());    // Add a new one (it will fuck up shit if this happens)
+                                                                                                                // Add this note to it
+                                        tempSlideDict[parsed.NoteIdentifier].Notes.Add(new Tuple<NoteParse, int>(parsed, i));
+                                        break;
+                                    default:    // Rest notes / spacers (0) are ignored
+                                        break;
+                                }
+                            }
+
+                        }
+                        // Parse BPM changes
+                        else if (Regex.IsMatch(line, "[#][0-9]{3}(08)"))
                         {
-                            if (parsed.Notes[i].Item2 == 0)
-                                break;
-                            else
-                                Metadata.BpmEvents.Add(new BpmChangeEvent(Metadata.BpmIndex[parsed.Notes[i].Item2], 4 * (parsed.Measure + i * noteSub)));
+                            var parsed = ParseLine(line);
+                            double noteSub = 1.0 / parsed.Notes.Count;
+                            for (int i = 0; i < parsed.Notes.Count; i++)
+                            {
+                                if (parsed.Notes[i].Item2 == 0)
+                                    break;
+                                else
+                                    Metadata.BpmEvents.Add(new BpmChangeEvent(Metadata.BpmIndex[parsed.Notes[i].Item2], 4 * (parsed.Measure + i * noteSub)));
+                            }
                         }
                     }
                 }
-            }
 
-            // Close out any remaining hold notes
-            foreach (var tempHold in tempSlideDict)
+                // Close out any remaining hold notes
+                foreach (var tempHold in tempSlideDict)
+                {
+                    CommitHold(tempHold.Value);
+                }
+
+                // Add Beat Markers
+                var noteLast = Steps.Count > 0 ? Steps.Max(x => x.BeatLocation) : 0;
+                var holdLast = Holds.Count > 0 ? Holds.Max(x => x.Notes.Max(y => y.BeatLocation)) : 0;
+                var motionLast = Motions.Count > 0 ? Motions.Max(x => x.BeatLocation) : 0;
+                double lastBeat = Math.Max(noteLast, holdLast);
+                lastBeat = Math.Ceiling(Math.Max(lastBeat, motionLast));
+                for (int i = 0; i <= (int)lastBeat; i += 4)
+                    Markers.Add(new BeatMarker(i));
+
+                TotalNotes += Steps.Count();
+                TotalNotes += Holds.Count();
+                foreach (var hold in Holds)
+                {
+                    TotalNotes += hold.GradePoints.Count;   // Additional beat counters for holds/slides
+                    TotalNotes += hold.Notes.Count(x => x.Type == NoteType.Shuffle);
+                }
+                TotalNotes += Motions.Count();
+            }
+            catch (Exception e)
             {
-                CommitHold(tempHold.Value);
+                Logger.WriteEntry("Exception in NoteCollection.ParseFile() => Input: " + fileName + ", Exception: " + e.Message);
             }
-
-            // Add Beat Markers
-            var noteLast = Steps.Count > 0 ? Steps.Max(x => x.BeatLocation) : 0;
-            var holdLast = Holds.Count > 0 ? Holds.Max(x => x.Notes.Max(y => y.BeatLocation)) : 0;
-            var motionLast = Motions.Count > 0 ? Motions.Max(x => x.BeatLocation) : 0;
-            double lastBeat = Math.Max(noteLast, holdLast);
-            lastBeat = Math.Ceiling(Math.Max(lastBeat, motionLast));
-            for (int i = 0; i <= (int)lastBeat; i+= 4)
-                Markers.Add(new BeatMarker(i));
-
-            TotalNotes += Steps.Count();
-            TotalNotes += Holds.Count();
-            foreach (var hold in Holds)
-            {
-                TotalNotes += hold.GradePoints.Count;   // Additional beat counters for holds/slides
-                TotalNotes += hold.Notes.Count(x => x.Type == NoteType.Shuffle);
-            }
-            TotalNotes += Motions.Count();
 
             return Metadata;
         }

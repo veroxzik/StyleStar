@@ -46,6 +46,7 @@
     <Compile Include="Defines.cs" />
     <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="Motion.cs" />
     <Compile Include="BeatMarker.cs" />
     <Compile Include="QuadTexture.cs" />

@@ -429,7 +429,7 @@ namespace StyleStar
                                 bool checkRight = true;
                                 if (i == 0)
                                     checkLeft = false;
-                                if (i == 8)
+                                if (i == 7)
                                     checkRight = false;
 
                                 if (checkLeft && prevKeys[i - 1])
