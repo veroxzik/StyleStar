@@ -60,7 +60,8 @@ namespace StyleStar
             {
                 ChartFullPath = Path.GetFullPath(fileName);
                 FilePath = Path.GetDirectoryName(fileName) + @"\";
-                using (StreamReader sr = new StreamReader(fileName))
+                List<string> children = new List<string>();
+                using (StreamReader sr = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read)))
                 {
                     while (!sr.EndOfStream)
                     {
@@ -105,11 +106,13 @@ namespace StyleStar
                             IsMetadataFile = true;
                             if (!parse.EndsWith(Defines.ChartExtension))
                                 parse += Defines.ChartExtension;
-                            ChildMetadata.Add(new SongMetadata(FilePath + parse));
+                            children.Add(FilePath + parse);
                         }
                     }
                 }
-                if (Jacket == "")
+                foreach (var child in children)
+                    ChildMetadata.Add(new SongMetadata(this, child));
+                if (Jacket == null || Jacket == "")
                     AlbumImage = Globals.Textures["FallbackJacket"];
                 else
                 {
@@ -121,7 +124,7 @@ namespace StyleStar
             }
             catch (Exception e)
             {
-                Logger.WriteEntry("Exception in SongMetadata.Parse() => Input: " + fileName + ", Exception: " + e.Message);
+                Logger.WriteEntry("Exception in SongMetadata.Parse() => Input: " + fileName + ", Exception: " + e.Message + ", Stack Trace: " + e.StackTrace + (e.InnerException != null ? ", Inner Exception: " + e.InnerException.Message : ""));
             }
         }
     }

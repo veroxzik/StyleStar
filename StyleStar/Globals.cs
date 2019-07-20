@@ -15,6 +15,8 @@ namespace StyleStar
         public static ContentManager ContentManager { get; set; }
         public static GraphicsDeviceManager GraphicsManager { get; set; }
 
+        public static Vector2 WindowSize { get; set; }
+
         public static double NoteSpeed { get; set; } = 50;    // World units per second
         public static double BeatToWorldXUnits { get; set; } = 3;
         public static double SpeedScale { get; set; } = 1.0;
@@ -177,6 +179,13 @@ namespace StyleStar
             Textures["SsActiveDifficulty1"] = ContentManager.Load<Texture2D>("SongSelection_ActiveDifficulty1");
             Textures["SsActiveDifficulty2"] = ContentManager.Load<Texture2D>("SongSelection_ActiveDifficulty2");
 
+            Textures["ResultBg1"] = ContentManager.Load<Texture2D>("Result_BgLine1");
+            Textures["ResultBg2"] = ContentManager.Load<Texture2D>("Result_BgLine2");
+            Textures["ResultBg3"] = ContentManager.Load<Texture2D>("Result_BgLine3");
+            Textures["ResultBgRight"] = ContentManager.Load<Texture2D>("Result_BgRight");
+            for (int i = 0; i <= 7; i++)
+                Textures["Star" + i] = ContentManager.Load<Texture2D>("Star_" + i);
+
             Textures["SsFolderSelect"] = ContentManager.Load<Texture2D>("SongSelection_FolderSelect");
             Textures["SsSongSelect"] = ContentManager.Load<Texture2D>("SongSelection_SongSelect");
             Textures["SsGoBack"] = ContentManager.Load<Texture2D>("SongSelection_GoBack");
@@ -227,5 +236,13 @@ namespace StyleStar
         Easy = 0,
         Normal,
         Hard
+    }
+
+    public enum SongEndReason
+    {
+        Undefined,
+        Forfeit,
+        Failed,
+        Cleared
     }
 }

@@ -129,6 +129,8 @@ namespace StyleStar
             GraphicsDevice.PresentationParameters.MultiSampleCount = 8;
             graphics.ApplyChanges();
 
+            Globals.WindowSize = new Vector2(1280, 720);
+
             view = Matrix.CreateLookAt(cameraPos, cameraTarget, Vector3.UnitY);
 
             bgRect = new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
@@ -182,7 +184,9 @@ namespace StyleStar
             Globals.Font.Add("Italic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Italic"));
             Globals.Font.Add("BoldItalic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-BoldItalic"));
             Globals.Font.Add("Franklin", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
+            Globals.Font.Add("RunningStart", Content.Load<SpriteFont>("Fonts/RunningStart"));
             Globals.FontScalingFactor.Add(Globals.Font["Franklin"], new Tuple<float, float>(43.857f, -.486f));
+            Globals.FontScalingFactor.Add(Globals.Font["RunningStart"], new Tuple<float, float>(160, 16));
 
             // Load songs
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -397,9 +401,17 @@ namespace StyleStar
                             break;
                     }
 
-                    // Figure out if song is finished
-                    if (kbState.IsKeyDown(Keys.Escape) || musicManager.IsFinished)
+                    // If user forfeits or song ends, move onto the result screen
+                    if (kbState.IsKeyDown(Keys.Escape))
                     {
+                        currentSongNotes.SongEnd = SongEndReason.Forfeit;
+                        enterLoadingScreen = true;
+                        loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                        break;
+                    }
+                    if (musicManager.IsFinished)
+                    {
+                        currentSongNotes.SongEnd = SongEndReason.Cleared;
                         enterLoadingScreen = true;
                         loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                         break;
@@ -753,7 +765,7 @@ namespace StyleStar
                     // 5. UI elements
 
                     spriteBatch.Begin();
-                    spriteBatch.Draw(Globals.Textures["SsBgLine"], Globals.Origin, ThemeColors.Blue);
+                    spriteBatch.Draw(Globals.Textures["SsBgLine"], Globals.Origin, songlist[currentSongIndex].ColorAccent.IfNull(ThemeColors.Blue));
                     if (selectedFolderIndex == -1)
                     {
                         spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
@@ -787,18 +799,14 @@ namespace StyleStar
                     }
                     else
                     {
-                        var selCol = songlist[currentSongIndex].ColorFore != ThemeColors.NullColor ? songlist[currentSongIndex].ColorFore : Color.White;
-                        spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, selCol);
+                        spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, songlist[currentSongIndex].ColorFore.IfNull(Color.White));
                         for (int i = 0; i < songlist.Count; i++)
                         {
                             var cardOffset = Globals.ItemOrigin + (i - currentSongIndex) * Globals.ItemOffset;
 
-                            var bgCol = songlist[i].ColorBack != ThemeColors.NullColor ? songlist[i].ColorBack : ThemeColors.GetColor(i);
-                            var foreCol = songlist[i].ColorFore != ThemeColors.NullColor ? songlist[i].ColorFore : ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f);
-
-                            spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, bgCol);
-                            spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, foreCol);
-                            spriteBatch.Draw(Globals.Textures["SsAccentAlbum"], cardOffset, foreCol);
+                            spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, songlist[i].ColorBack.IfNull(ThemeColors.GetColor(i)));
+                            spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, songlist[i].ColorFore.IfNull(ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f)));
+                            spriteBatch.Draw(Globals.Textures["SsAccentAlbum"], cardOffset, songlist[i].ColorFore.IfNull(ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f)));
                             spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle((int)cardOffset.X + 284, (int)cardOffset.Y + 12, 96, 96), Color.White);
                             spriteBatch.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
                             spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
@@ -989,8 +997,8 @@ namespace StyleStar
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Title, new Vector2(1150, yTopRow), Color.White, 0.2f, Justification.Right);
                     float yBottomRow = 685f;
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), new Vector2(50, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.00"), new Vector2(120, yBottomRow), Color.White, 0.25f, Justification.Left | Justification.Bottom);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "/ 100.00%", new Vector2(315, yBottomRow), Color.White, 0.18f, Justification.Left | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.000"), new Vector2(120, yBottomRow), Color.White, 0.25f, Justification.Left | Justification.Bottom);
+                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "/ 100.000%", new Vector2(335, yBottomRow), Color.White, 0.18f, Justification.Left | Justification.Bottom);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Artist, new Vector2(1150, yBottomRow), Color.White, 0.1f, Justification.Right | Justification.Bottom);
                     spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
 
@@ -1090,8 +1098,8 @@ namespace StyleStar
 
         private void LoadSong(SongMetadata meta)
         {
-            currentSongNotes = new NoteCollection();
-            currentSongMeta = currentSongNotes.ParseFile(meta.ChartFullPath);
+            currentSongNotes = new NoteCollection(meta);
+            currentSongMeta = currentSongNotes.ParseFile();
 
             musicManager.LoadSong(currentSongMeta.FilePath + currentSongMeta.SongFilename, currentSongMeta.BpmEvents);
             musicManager.Offset = currentSongMeta.PlaybackOffset * 1000;

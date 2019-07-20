@@ -65,8 +65,15 @@ namespace StyleStar
 
         public static void DrawStringJustify(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float scale, Justification justification)
         {
+            DrawStringJustify(sb, font, text, position, color, scale, justification, 0, new Color());
+        }
+
+        public static void DrawStringJustify(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float scale, Justification justification, float strokeSize, Color strokeColor)
+        {
             Vector2 size = font.MeasureString(text);
-            float trueY = Globals.FontScalingFactor[font].Item1 * scale + Globals.FontScalingFactor[font].Item2;
+            float trueY = size.Y * scale;
+            if (Globals.FontScalingFactor.ContainsKey(font))
+                trueY = Globals.FontScalingFactor[font].Item1 * scale + Globals.FontScalingFactor[font].Item2;
             float xOffset = 0, yOffset = 0;
             if (justification.HasFlag(Justification.Right))
             {
@@ -85,23 +92,31 @@ namespace StyleStar
                 yOffset += -size.Y * scale + trueY;
             }
             Vector2 offset = new Vector2(xOffset, yOffset);
-            sb.DrawString(font, text, position + offset, color, 0, new Vector2(0, 0), scale, new SpriteEffects(), 0);
-            //Vector2 size = font.MeasureString(text);
-            //float xOffset = 0, yOffset = 0;
-            //if (justification.HasFlag(Justification.Right))
-            //{
-            //    xOffset = size.X * scale;
-            //}
-            //else if (justification.HasFlag(Justification.Center))
-            //{
-            //    xOffset = size.X * scale / 2;
-            //}
-            //if (justification.HasFlag(Justification.Bottom))
-            //{
-            //    yOffset = size.Y * scale;
-            //}
-            //Vector2 offset = new Vector2(xOffset, yOffset);
-            //sb.DrawString(font, text, position, color, 0, offset, scale, new SpriteEffects(), 0);
+            if(strokeSize > 0)
+            {
+                DrawStringStroke(sb, font, text, position + offset, strokeSize, strokeColor, scale, StrokeStyle.All);
+            }
+            sb.DrawString(font, text, position + offset, color, 0, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+        }
+
+        public static void DrawStringStroke(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, float strokeSize, Color color, float scale)
+        {
+            DrawStringStroke(sb, font, text, position, strokeSize, color, scale, StrokeStyle.Corners);
+        }
+
+        public static void DrawStringStroke(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, float strokeSize, Color color, float scale, StrokeStyle style)
+        {
+            sb.DrawString(font, text, new Vector2(position.X - strokeSize, position.Y - strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+            sb.DrawString(font, text, new Vector2(position.X + strokeSize, position.Y - strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+            sb.DrawString(font, text, new Vector2(position.X - strokeSize, position.Y + strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+            sb.DrawString(font, text, new Vector2(position.X + strokeSize, position.Y + strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+            if(style == StrokeStyle.All)
+            {
+                sb.DrawString(font, text, new Vector2(position.X - strokeSize, position.Y), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+                sb.DrawString(font, text, new Vector2(position.X + strokeSize, position.Y), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+                sb.DrawString(font, text, new Vector2(position.X, position.Y + strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+                sb.DrawString(font, text, new Vector2(position.X, position.Y - strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+            }
         }
 
         public static Color LerpBlackAlpha(this Color color, float ratio, float alpha)
@@ -121,6 +136,14 @@ namespace StyleStar
 
             return new Color(r, g, b);
         }
+
+        public static Color IfNull(this Color c, Color other)
+        {
+            if (c == ThemeColors.NullColor)
+                return other;
+            else
+                return c;
+        }
     }
 
     [Flags]
@@ -132,5 +155,11 @@ namespace StyleStar
         Top     = 0x08,
         Bottom  = 0x10,
         Middle  = 0x20
+    }
+
+    public enum StrokeStyle
+    {
+        Corners,
+        All
     }
 }

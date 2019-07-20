@@ -23,21 +23,28 @@ namespace StyleStar
         public int CurrentCombo { get; private set; }
         public int MaxCombo { get; private set; }
 
-        public NoteCollection()
-        {
+        public int PerfectCount { get; private set; } = 0;
+        public int GreatCount { get; private set; } = 0;
+        public int GoodCount { get; private set; } = 0;
+        public int MissCount { get; private set; } = 0;
 
+        public SongEndReason SongEnd { get; set; }
+
+        public NoteCollection(SongMetadata meta)
+        {
+            Metadata = meta;
         }
 
-        public SongMetadata ParseFile(string fileName)
+        public SongMetadata ParseFile()
         {
-            Metadata = new SongMetadata(fileName);
+            string fileName = Metadata.ChartFullPath;
 
             Dictionary<int, int> holdIDlist = new Dictionary<int, int>();
             Dictionary<int, SlideCollection> tempSlideDict = new Dictionary<int, SlideCollection>();
 
             try
             {
-                using (StreamReader sr = new StreamReader(fileName))
+                using (StreamReader sr = new StreamReader(new FileStream(fileName, FileMode.Open, FileAccess.Read)))
                 {
                     while (!sr.EndOfStream)
                     {
@@ -151,7 +158,7 @@ namespace StyleStar
             }
             catch (Exception e)
             {
-                Logger.WriteEntry("Exception in NoteCollection.ParseFile() => Input: " + fileName + ", Exception: " + e.Message);
+                Logger.WriteEntry("Exception in NoteCollection.ParseFile() => Input: " + fileName + ", Exception: " + e.Message + ", Stack Trace: " + e.StackTrace + (e.InnerException != null ? ", Inner Exception: " + e.InnerException.Message : ""));
             }
 
             return Metadata;
@@ -274,6 +281,7 @@ namespace StyleStar
                     {
                         MaxCombo = Math.Max(MaxCombo, CurrentCombo);
                         CurrentCombo = 0;
+                        MissCount++;
                         return;
                     }
                     else
@@ -282,16 +290,19 @@ namespace StyleStar
                         {
                             CurrentScore += 1.0;
                             CurrentCombo++;
-                        }
-                        else if (Math.Abs(diff) <= NoteTiming.Great)
-                        {
-                            CurrentScore += 0.9;
-                            CurrentCombo++;
+                            PerfectCount++;
                         }
                         else if (Math.Abs(diff) <= NoteTiming.Good)
                         {
+                            CurrentScore += 0.9;
+                            CurrentCombo++;
+                            GreatCount++;
+                        }
+                        else if (Math.Abs(diff) <= NoteTiming.Bad)
+                        {
                             CurrentScore += 0.5;
                             CurrentCombo++;
+                            GoodCount++;
                         }
                     }
                     break;
@@ -304,11 +315,13 @@ namespace StyleStar
                     {
                         CurrentScore += 1.0;
                         CurrentCombo++;
+                        PerfectCount++;
                     }
                     else
                     {
                         MaxCombo = Math.Max(MaxCombo, CurrentCombo);
                         CurrentCombo = 0;
+                        MissCount++;
                     }
                     break;
                 default:
