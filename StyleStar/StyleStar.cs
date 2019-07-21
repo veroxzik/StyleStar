@@ -262,6 +262,11 @@ namespace StyleStar
                                 leavingLoadingScreen = true;
                                 var meta = songlist[currentSongIndex].IsMetadataFile ? songlist[currentSongIndex].ChildMetadata[currentSongLevelIndex] : songlist[currentSongIndex];
                                 LoadSong(meta);
+                                // Set notelane textures
+                                noteLaneAccent1l.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
+                                noteLaneAccent1r.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
+                                noteLaneAccent2l.SetColor(meta.ColorFore.IfNull(ThemeColors.Blue));
+                                noteLaneAccent2r.SetColor(meta.ColorFore.IfNull(ThemeColors.Blue));
                                 currentMode = Mode.GamePlay;
                                 loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                                 break;

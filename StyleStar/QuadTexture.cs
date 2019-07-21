@@ -41,6 +41,21 @@ namespace StyleStar
             }
         }
 
+        public void SetColor(Color color)
+        {
+            int length = texture.Width * texture.Height;
+            var pixels = new Color[length];
+            texture.GetData(pixels);
+            for (int i = 0; i < length; i++)
+            {
+                pixels[i].R = color.R;
+                pixels[i].G = color.G;
+                pixels[i].B = color.B;
+                pixels[i].A = color.A;
+            }
+            texture.SetData(pixels);
+        }
+
         public void SetVerts(float xl, float xr, float y1, float y2)
         {
             SetVerts(xl, xr, y1, xl, xr, y2, 0);
