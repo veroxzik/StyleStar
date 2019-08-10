@@ -24,12 +24,7 @@ namespace StyleStar
             BeatLocation = beatLoc;
         }
 
-        public void PreloadTexture()
-        {
-            PreloadTexture(null);
-        }
-
-        public void PreloadTexture(Note prevNote)
+        public void PreloadTexture(UserSettings settings)
         {
             if (noteTexture == null)
                 noteTexture = new BeatMarkerTexture(this);

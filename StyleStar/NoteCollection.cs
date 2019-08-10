@@ -164,16 +164,16 @@ namespace StyleStar
             return Metadata;
         }
 
-        public void PreloadTextures()
+        public void PreloadTextures(UserSettings settings)
         {
             foreach (var motion in Motions)
-                motion.PreloadTexture();
+                motion.PreloadTexture(settings);
             foreach (var hold in Holds)
-                hold.PreloadTexture();
+                hold.PreloadTexture(settings);
             foreach (var step in Steps)
-                step.PreloadTexture();
+                step.PreloadTexture(settings);
             foreach (var marker in Markers)
-                marker.PreloadTexture();
+                marker.PreloadTexture(settings);
         }
 
         private NoteParse ParseLine(string line)

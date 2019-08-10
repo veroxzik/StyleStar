@@ -14,7 +14,7 @@ namespace StyleStar
     {
         private Side shuffleStartSide;
 
-        public ShuffleNoteTexture(Note _parent, Note _prevNote) : base(_parent, _prevNote)
+        public ShuffleNoteTexture(UserSettings settings, Note _parent, Note _prevNote) : base(_parent, _prevNote)
         {
             if (!IsLoaded)
             {

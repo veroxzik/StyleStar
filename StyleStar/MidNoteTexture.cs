@@ -12,7 +12,7 @@ namespace StyleStar
 {
     public class MidNoteTexture : NoteTextureBase
     {
-        public MidNoteTexture(Note _parent, Note _prevNote) : base(_parent, _prevNote)
+        public MidNoteTexture(UserSettings settings, Note _parent, Note _prevNote) : base(_parent, _prevNote)
         {
             if (!IsLoaded)
             {

@@ -41,8 +41,8 @@ namespace StyleStar
             // Grade Labels
             sb.DrawStringStroke(Globals.Font["Franklin"], "STYLISH", gradeLabelsPoint, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
             sb.DrawString(Globals.Font["Franklin"], "STYLISH", gradeLabelsPoint, ThemeColors.Stylish, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], "GREAT", gradeLabelsPoint + gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], "GREAT", gradeLabelsPoint + gradeLabelOffset, ThemeColors.Good, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
+            sb.DrawStringStroke(Globals.Font["Franklin"], "COOL", gradeLabelsPoint + gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
+            sb.DrawString(Globals.Font["Franklin"], "COOL", gradeLabelsPoint + gradeLabelOffset, ThemeColors.Good, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
             sb.DrawStringStroke(Globals.Font["Franklin"], "GOOD", gradeLabelsPoint + 2* gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
             sb.DrawString(Globals.Font["Franklin"], "GOOD", gradeLabelsPoint + 2* gradeLabelOffset, ThemeColors.Bad, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
             sb.DrawStringStroke(Globals.Font["Franklin"], "MISS", gradeLabelsPoint + 3 * gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);

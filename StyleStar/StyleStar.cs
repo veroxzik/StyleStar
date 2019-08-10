@@ -40,6 +40,8 @@ namespace StyleStar
 
         private Mode currentMode = Mode.SongSelect;
 
+        UserSettings currentUserSettings = new UserSettings();
+
         // Music
         MusicManager musicManager = new MusicManager();
 
@@ -1110,7 +1112,7 @@ namespace StyleStar
             musicManager.Offset = currentSongMeta.PlaybackOffset * 1000;
 
             // Preload all textures
-            currentSongNotes.PreloadTextures();
+            currentSongNotes.PreloadTextures(currentUserSettings);
         }
     }
 

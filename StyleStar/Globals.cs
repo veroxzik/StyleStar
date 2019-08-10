@@ -159,6 +159,12 @@ namespace StyleStar
             Textures["FootHold"] = ContentManager.Load<Texture2D>("FootHold");
             Textures["BeatMark"] = ContentManager.Load<Texture2D>("BeatMarker");
 
+            // New Step Textures
+            Textures["StepLeftPink"] = ContentManager.Load<Texture2D>("StepTextures/StepLeftPink");
+            Textures["StepRightPink"] = ContentManager.Load<Texture2D>("StepTextures/StepRightPink");
+            Textures["StepLeftBlue"] = ContentManager.Load<Texture2D>("StepTextures/StepLeftBlue");
+            Textures["StepRightBlue"] = ContentManager.Load<Texture2D>("StepTextures/StepRightBlue");
+
             Textures["PerfectGrade"] = ContentManager.Load<Texture2D>("PerfectGrade");
             Textures["GreatGrade"] = ContentManager.Load<Texture2D>("GreatGrade");
             Textures["GoodGrade"] = ContentManager.Load<Texture2D>("GoodGrade");

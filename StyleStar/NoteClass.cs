@@ -43,36 +43,36 @@ namespace StyleStar
             Type = NoteType.Motion;
         }
 
-        public void PreloadTexture()
+        public void PreloadTexture(UserSettings settings)
         {
-            PreloadTexture(null);
+            PreloadTexture(settings, null);
         }
 
-        public void PreloadTexture(Note prevNote)
+        public void PreloadTexture(UserSettings settings, Note prevNote)
         {
             switch (Type)
             {
                 case NoteType.Step:
                     if (noteTexture == null)
-                        noteTexture = new StepNoteTexture(this);
+                        noteTexture = new StepNoteTexture(settings, this);
                     return;
                 case NoteType.Motion:
                     if (noteTexture == null)
-                        noteTexture = new MotionTexture(this);
+                        noteTexture = new MotionTexture(settings, this);
                     return;
                 case NoteType.Hold:
                     if (bgTexture == null)
-                        bgTexture = new MidNoteTexture(this, prevNote);
+                        bgTexture = new MidNoteTexture(settings, this, prevNote);
                     break;
                 case NoteType.Slide:
                     if (bgTexture == null)
-                        bgTexture = new MidNoteTexture(this, prevNote);
+                        bgTexture = new MidNoteTexture(settings, this, prevNote);
                     break;
                 case NoteType.Shuffle:
                     if (bgTexture == null)
-                        bgTexture = new MidNoteTexture(this, prevNote);
+                        bgTexture = new MidNoteTexture(settings, this, prevNote);
                     if (noteTexture == null)
-                        noteTexture = new ShuffleNoteTexture(this, prevNote);
+                        noteTexture = new ShuffleNoteTexture(settings, this, prevNote);
                     break;
                 default:
                     break;
@@ -87,14 +87,14 @@ namespace StyleStar
 
             if (Type == NoteType.Step)
             {
-                if (noteTexture == null)
-                    noteTexture = new StepNoteTexture(this);
+                //if (noteTexture == null)
+                //    noteTexture = new StepNoteTexture(this);
                 noteTexture.Draw(currentBeat, view, projection);
             }
             else if (Type == NoteType.Motion)
             {
-                if (noteTexture == null)
-                    noteTexture = new MotionTexture(this);
+                //if (noteTexture == null)
+                //    noteTexture = new MotionTexture(this);
                 noteTexture.Draw(currentBeat, view, projection);
             }
         }
@@ -113,21 +113,21 @@ namespace StyleStar
                     Draw(currentBeat, view, projection);
                     return;
                 case NoteType.Hold:
-                    if (bgTexture == null)
-                        bgTexture = new MidNoteTexture(this, prevNote);
+                    //if (bgTexture == null)
+                    //    bgTexture = new MidNoteTexture(this, prevNote);
                     bgTexture.Draw(currentBeat, view, projection, overlapIndex);
                     break;
                 case NoteType.Slide:
-                    if (bgTexture == null)
-                        bgTexture = new MidNoteTexture(this, prevNote);
+                    //if (bgTexture == null)
+                    //    bgTexture = new MidNoteTexture(this, prevNote);
                     bgTexture.Draw(currentBeat, view, projection, overlapIndex);
                     break;
                 case NoteType.Shuffle:
-                    if (bgTexture == null)
-                        bgTexture = new MidNoteTexture(this, prevNote);
+                    //if (bgTexture == null)
+                    //    bgTexture = new MidNoteTexture(this, prevNote);
                     bgTexture.Draw(currentBeat, view, projection, overlapIndex);
-                    if (noteTexture == null)
-                        noteTexture = new ShuffleNoteTexture(this, prevNote);
+                    //if (noteTexture == null)
+                    //    noteTexture = new ShuffleNoteTexture(this, prevNote);
                     ((ShuffleNoteTexture)noteTexture).Draw(currentBeat, view, projection, overlapIndex);
                     break;
                 default:

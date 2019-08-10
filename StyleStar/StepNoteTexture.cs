@@ -12,13 +12,13 @@ namespace StyleStar
 {
     public class StepNoteTexture : NoteTextureBase
     {
-        public StepNoteTexture(Note _parent) : base(_parent)
+        public StepNoteTexture(UserSettings settings, Note _parent) : base(_parent)
         {
             if (!IsLoaded)
             {
                 string tex = "";
                 if (parent.Type == NoteType.Step)
-                    tex = parent.Side == Side.Left ? "StepLeft" : "StepRight";
+                    tex = parent.Side == Side.Left ? settings.GetStepLeftString() : settings.GetStepRightString();
                 else
                     return;
 

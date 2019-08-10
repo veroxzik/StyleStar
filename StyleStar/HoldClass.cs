@@ -95,14 +95,14 @@ namespace StyleStar
                 HitTexture.Draw(view, projection);
         }
 
-        public void PreloadTexture()
+        public void PreloadTexture(UserSettings settings)
         {
             for (int i = 0; i < Notes.Count; i++)
             {
                 var prevNote = i == 0 ? StartNote : Notes[i - 1];
-                Notes[i].PreloadTexture(prevNote);
+                Notes[i].PreloadTexture(settings, prevNote);
             }
-            StartNote.PreloadTexture();
+            StartNote.PreloadTexture(settings);
             HitTexture = new QuadTexture(Globals.Textures["HitTexture"]);
         }
 

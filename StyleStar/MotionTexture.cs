@@ -12,7 +12,7 @@ namespace StyleStar
 {
     public class MotionTexture : NoteTextureBase
     {
-        public MotionTexture(Note _parent) : base(_parent)
+        public MotionTexture(UserSettings settings, Note _parent) : base(_parent)
         {
             if (!IsLoaded)
             {
