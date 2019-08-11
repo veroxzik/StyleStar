@@ -117,7 +117,7 @@ namespace StyleStar
 
                         }
                         // Parse BPM changes
-                        else if (Regex.IsMatch(line, "[#][0-9]{3}(08)"))
+                        else if (Regex.IsMatch(line, "[#][0-9]{3}(08:)"))
                         {
                             var parsed = ParseLine(line);
                             double noteSub = 1.0 / parsed.Notes.Count;
