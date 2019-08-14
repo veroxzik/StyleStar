@@ -33,8 +33,6 @@ namespace StyleStar
 
         private void SetVerts(double currentBeat)
         {
-            //var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits + Globals.StepNoteHeightOffset;
-            //var y2 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits - Globals.StepNoteHeightOffset;
             var curDist = Globals.GetDistAtBeat(currentBeat);
             var y1 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist - Globals.StepNoteHeightOffset + 1;
             var y2 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist - Globals.StepNoteHeightOffset;

@@ -12,15 +12,17 @@ namespace StyleStar
 {
     public class MidNoteTexture : NoteTextureBase
     {
+        private int repetitionY = 80;
+
         public MidNoteTexture(UserSettings settings, Note _parent, Note _prevNote) : base(_parent, _prevNote)
         {
             if (!IsLoaded)
             {
                 string tex = "";
                 if (parent.Type == NoteType.Hold || parent.Type == NoteType.Shuffle)
-                    tex = parent.Side == Side.Left ? "HoldLeft" : "HoldRight";
+                    tex = parent.Side == Side.Left ? settings.GetHoldLeftString() : settings.GetHoldRightString();
                 else if (parent.Type == NoteType.Slide)
-                    tex = parent.Side == Side.Left ? "SlideLeft" : "SlideRight";
+                    tex = parent.Side == Side.Left ? settings.GetSlideLeftString() : settings.GetSlideRightString();
 
                 texture = Globals.Textures[tex];
                 IsLoaded = true;
@@ -42,11 +44,11 @@ namespace StyleStar
 
         private void SetVerts(double currentBeat)
         {
-            //var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits;
-            //var y2 = (prevNote.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits;
             var curDist = Globals.GetDistAtBeat(currentBeat);
             var y1 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist;
             var y2 = Globals.GetDistAtBeat(prevNote.BeatLocation) - curDist;
+
+            int reps = (int)(Math.Ceiling(Math.Abs(y1 - y2) / repetitionY));
 
             // Offset y's if the note is a step note
             //if (prevNote.Type == NoteType.Step)
@@ -59,12 +61,13 @@ namespace StyleStar
             var topNote = parent.Type == NoteType.Hold || parent.Type == NoteType.Shuffle ? prevNote : parent;
 
             SetVerts(
-                (float)Globals.CalcTransX(topNote, Side.Left),
-                (float)Globals.CalcTransX(topNote, Side.Right),
-                (float)y1,
-                (float)Globals.CalcTransX(prevNote, Side.Left),
-                (float)Globals.CalcTransX(prevNote, Side.Right),
-                (float)y2);
+                Globals.CalcTransX(topNote, Side.Left),
+                Globals.CalcTransX(topNote, Side.Right),
+                y1,
+                Globals.CalcTransX(prevNote, Side.Left),
+                Globals.CalcTransX(prevNote, Side.Right),
+                y2,
+                reps);
             
         }
     }

@@ -160,10 +160,16 @@ namespace StyleStar
             Textures["BeatMark"] = ContentManager.Load<Texture2D>("BeatMarker");
 
             // New Step Textures
-            Textures["StepLeftPink"] = ContentManager.Load<Texture2D>("StepTextures/StepLeftPink");
-            Textures["StepRightPink"] = ContentManager.Load<Texture2D>("StepTextures/StepRightPink");
-            Textures["StepLeftBlue"] = ContentManager.Load<Texture2D>("StepTextures/StepLeftBlue");
-            Textures["StepRightBlue"] = ContentManager.Load<Texture2D>("StepTextures/StepRightBlue");
+            Textures["StepLeftPink"] = ContentManager.Load<Texture2D>("NoteTextures/StepLeftPink");
+            Textures["StepRightPink"] = ContentManager.Load<Texture2D>("NoteTextures/StepRightPink");
+            Textures["StepLeftBlue"] = ContentManager.Load<Texture2D>("NoteTextures/StepLeftBlue");
+            Textures["StepRightBlue"] = ContentManager.Load<Texture2D>("NoteTextures/StepRightBlue");
+            Textures["HoldPink"] = ContentManager.Load<Texture2D>("NoteTextures/HoldPink");
+            Textures["HoldBlue"] = ContentManager.Load<Texture2D>("NoteTextures/HoldBlue");
+            Textures["ShuffleLeftPink"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleLeftPink");
+            Textures["ShuffleRightPink"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleRightPink");
+            Textures["ShuffleLeftBlue"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleLeftBlue");
+            Textures["ShuffleRightBlue"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleRightBlue");
 
             Textures["PerfectGrade"] = ContentManager.Load<Texture2D>("PerfectGrade");
             Textures["GreatGrade"] = ContentManager.Load<Texture2D>("GreatGrade");

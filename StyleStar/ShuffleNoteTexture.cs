@@ -18,22 +18,35 @@ namespace StyleStar
         {
             if (!IsLoaded)
             {
+                //string tex = "";
+                //if (parent.Type == NoteType.Shuffle)
+                //    tex = parent.Side == Side.Left ? "ShuffleLeft" : "ShuffleRight";
+                //else
+                //    return;
+                //if (parent.LaneIndex > prevNote.LaneIndex)
+                //{
+                //    tex += "_R";
+                //    shuffleStartSide = Side.Right;
+                //}
+                //else
+                //{
+                //    tex += "_L";
+                //    shuffleStartSide = Side.Left;
+                //}
                 string tex = "";
-                if (parent.Type == NoteType.Shuffle)
-                    tex = parent.Side == Side.Left ? "ShuffleLeft" : "ShuffleRight";
-                else
+                if (parent.Type != NoteType.Shuffle)
                     return;
-                //tex += parent.LaneIndex > prevNote.LaneIndex ? "_R" : "_L";
                 if (parent.LaneIndex > prevNote.LaneIndex)
                 {
-                    tex += "_R";
+                    tex = "ShuffleLeft";
                     shuffleStartSide = Side.Right;
                 }
                 else
                 {
-                    tex += "_L";
+                    tex += "ShuffleRight";
                     shuffleStartSide = Side.Left;
                 }
+                tex += parent.Side == Side.Left ? settings.LeftColorString : settings.RightColorString;
 
                 texture = Globals.Textures[tex];
                 IsLoaded = true;
@@ -55,8 +68,6 @@ namespace StyleStar
 
         private void SetVerts(double currentBeat)
         {
-            //var y1 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits + Globals.ShuffleNoteHeightOffset;
-            //var y2 = (parent.BeatLocation - currentBeat) * Globals.BeatToWorldYUnits - Globals.ShuffleNoteHeightOffset;
             var curDist = Globals.GetDistAtBeat(currentBeat);
             var y1 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist + Globals.ShuffleNoteHeightOffset;
             var y2 = Globals.GetDistAtBeat(parent.BeatLocation) - curDist - Globals.ShuffleNoteHeightOffset;
