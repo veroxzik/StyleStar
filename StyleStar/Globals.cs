@@ -166,6 +166,8 @@ namespace StyleStar
             Textures["StepRightBlue"] = ContentManager.Load<Texture2D>("NoteTextures/StepRightBlue");
             Textures["HoldPink"] = ContentManager.Load<Texture2D>("NoteTextures/HoldPink");
             Textures["HoldBlue"] = ContentManager.Load<Texture2D>("NoteTextures/HoldBlue");
+            Textures["SlidePink"] = ContentManager.Load<Texture2D>("NoteTextures/SlidePink");
+            Textures["SlideBlue"] = ContentManager.Load<Texture2D>("NoteTextures/SlideBlue");
             Textures["ShuffleLeftPink"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleLeftPink");
             Textures["ShuffleRightPink"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleRightPink");
             Textures["ShuffleLeftBlue"] = ContentManager.Load<Texture2D>("NoteTextures/ShuffleLeftBlue");
@@ -230,7 +232,8 @@ namespace StyleStar
         Hold,
         Slide,
         Shuffle,
-        Motion
+        Motion,
+        All
     }
 
     public enum Mode

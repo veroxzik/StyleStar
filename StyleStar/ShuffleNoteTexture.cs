@@ -75,8 +75,10 @@ namespace StyleStar
             var minXNote = parent.LaneIndex > prevNote.LaneIndex ? prevNote : parent;
             var maxXNote = parent.LaneIndex > prevNote.LaneIndex ? parent : prevNote;
 
-            float leftOffset = shuffleStartSide == Side.Left ? (float)Globals.ShuffleXOffset : 0;
-            float rightOffset = shuffleStartSide == Side.Right ? (float)Globals.ShuffleXOffset : 0;
+            float leftOffset = 0;
+            float rightOffset = 0;
+            //float leftOffset = shuffleStartSide == Side.Left ? (float)Globals.ShuffleXOffset : 0;
+            //float rightOffset = shuffleStartSide == Side.Right ? (float)Globals.ShuffleXOffset : 0;
 
             SetVerts(
                 (float)Globals.CalcTransX(minXNote, Side.Left) + rightOffset,

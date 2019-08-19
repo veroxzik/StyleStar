@@ -53,8 +53,10 @@ namespace StyleStar
             // Offset y's if the note is a step note
             //if (prevNote.Type == NoteType.Step)
             //    y2 += Globals.StepNoteHeightOffset;
-            /*else*/ if(prevNote.Type == NoteType.Shuffle)
-                y2 += Globals.ShuffleNoteHeightOffset;
+            /*else*/
+            if (prevNote.Type == NoteType.Shuffle)
+                //y2 += Globals.ShuffleNoteHeightOffset;
+                y2 -= Globals.ShuffleNoteHeightOffset;
             if (parent.Type == NoteType.Shuffle)
                 y1 -= Globals.ShuffleNoteHeightOffset;
 

@@ -59,30 +59,58 @@ namespace StyleStar
             Notes.Add(note);
         }
 
-        public void Draw(double currentBeat, Matrix view, Matrix projection)
+        //public void Draw(double currentBeat, Matrix view, Matrix projection)
+        //{
+        //    // Draw everything but the start note
+        //    for (int i = 0; i < Notes.Count; i++)
+        //    {
+        //        var prevNote = i == 0 ? StartNote : Notes[i - 1];
+        //        Notes[i].Draw(currentBeat, view, projection, prevNote);
+        //    }
+
+        //    // Draw start note
+        //    StartNote.Draw(currentBeat, view, projection);
+
+        //    // Draw hit texture if necessary
+        //    if (IsPlayerHolding)
+        //        HitTexture.Draw(view, projection);
+        //}
+
+        public void Draw(double currentBeat, Matrix view, Matrix projection, int overlapIndex = 0)
         {
-            // Draw everything but the start note
+            // Draw order
+            // Hold bodies
+            // Slides
+            // Then shuffles
+            // The Notes
+
+            // Draw hold bodies first
             for (int i = 0; i < Notes.Count; i++)
             {
                 var prevNote = i == 0 ? StartNote : Notes[i - 1];
-                Notes[i].Draw(currentBeat, view, projection, prevNote);
+                if (Notes[i].Type == NoteType.Hold || Notes[i].Type == NoteType.Shuffle)
+                    Notes[i].Draw(currentBeat, view, projection, prevNote, overlapIndex, NoteType.Hold);
             }
-
-            // Draw start note
-            StartNote.Draw(currentBeat, view, projection);
-
-            // Draw hit texture if necessary
-            if (IsPlayerHolding)
-                HitTexture.Draw(view, projection);
-        }
-
-        public void Draw(double currentBeat, Matrix view, Matrix projection, int overlapIndex)
-        {
-            // Draw everything but the start note
+            // Then draw slides
             for (int i = 0; i < Notes.Count; i++)
             {
                 var prevNote = i == 0 ? StartNote : Notes[i - 1];
-                Notes[i].Draw(currentBeat, view, projection, prevNote, overlapIndex);
+                if (Notes[i].Type == NoteType.Slide)
+                    Notes[i].Draw(currentBeat, view, projection, prevNote, overlapIndex); ;
+            }
+            // Then draw shuffles
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                var prevNote = i == 0 ? StartNote : Notes[i - 1];
+                if(Notes[i].Type == NoteType.Shuffle)
+                Notes[i].Draw(currentBeat, view, projection, prevNote, overlapIndex, NoteType.Shuffle); ;
+            }
+            // Then draw notes
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                var prevNote = i == 0 ? StartNote : Notes[i - 1];
+                if (Notes[i].Type == NoteType.Step)
+                    Notes[i].Draw(currentBeat, view, projection, prevNote, overlapIndex); ;
             }
 
             // Draw start note

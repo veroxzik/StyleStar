@@ -99,12 +99,7 @@ namespace StyleStar
             }
         }
 
-        public void Draw(double currentBeat, Matrix view, Matrix projection, Note prevNote)
-        {
-            Draw(currentBeat, view, projection, prevNote, 0);
-        }
-
-        public void Draw(double currentBeat, Matrix view, Matrix projection, Note prevNote, int overlapIndex)
+        public void Draw(double currentBeat, Matrix view, Matrix projection, Note prevNote, int overlapIndex = 0, NoteType type = NoteType.All)
         {
             switch (Type)
             {
@@ -125,10 +120,12 @@ namespace StyleStar
                 case NoteType.Shuffle:
                     //if (bgTexture == null)
                     //    bgTexture = new MidNoteTexture(this, prevNote);
-                    bgTexture.Draw(currentBeat, view, projection, overlapIndex);
+                    if (type == NoteType.All || type == NoteType.Hold || type == NoteType.Slide)
+                        bgTexture.Draw(currentBeat, view, projection, overlapIndex);
                     //if (noteTexture == null)
                     //    noteTexture = new ShuffleNoteTexture(this, prevNote);
-                    ((ShuffleNoteTexture)noteTexture).Draw(currentBeat, view, projection, overlapIndex);
+                    if (type == NoteType.All || type == NoteType.Shuffle)
+                        ((ShuffleNoteTexture)noteTexture).Draw(currentBeat, view, projection, overlapIndex);
                     break;
                 default:
                     break;

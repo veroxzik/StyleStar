@@ -40,12 +40,12 @@ namespace StyleStar
 
         public string GetSlideLeftString()
         {
-            return "Hold" + LeftColorString;
+            return "Slide" + LeftColorString;
         }
 
         public string GetSlideRightString()
         {
-            return "Hold" + RightColorString;
+            return "Slide" + RightColorString;
         }
     }
 }

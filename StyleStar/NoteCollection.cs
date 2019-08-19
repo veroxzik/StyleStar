@@ -137,6 +137,8 @@ namespace StyleStar
                 {
                     CommitHold(tempHold.Value);
                 }
+                // Sort holds for drawing later
+                Holds = Holds.OrderBy(x => x.StartNote.BeatLocation).ToList();
 
                 // Add Beat Markers
                 var noteLast = Steps.Count > 0 ? Steps.Max(x => x.BeatLocation) : 0;

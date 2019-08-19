@@ -958,6 +958,7 @@ namespace StyleStar
                         var holdStart = holds.Count() - 1;
                         for (int i = 0; i < holds.Count(); i++)
                             holds.ElementAt(i).Draw(currentBeat, view, projection, holdStart - i);
+                            //holds.ElementAt(i).Draw(currentBeat, view, projection);
 
                         if (enableProfiling)
                             log.AddEvent(stopwatch.ElapsedMilliseconds, "Holds Drawn");
