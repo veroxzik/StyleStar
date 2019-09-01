@@ -37,8 +37,6 @@ namespace StyleStar
         public static Vector2 ItemOrigin = new Vector2(144, 212);
         public static Vector2 ItemOffset = new Vector2(-75, 130);
 
-        public static Dictionary<SpriteFont, Tuple<float,float>> FontScalingFactor = new Dictionary<SpriteFont, Tuple<float, float>>();
-
         // public static double CurrentBpm { get; set; }
         public static List<BpmChangeEvent> BpmEvents { get; set; }
 

@@ -10,6 +10,8 @@ namespace StyleStar
 {
     public static class Util
     {
+        static readonly bool _drawBoundingBox = false;
+
         /// This snippit modified from: http://bluelinegamestudios.com/posts/drawstring-to-fit-text-to-a-rectangle-in-xna/
 
         /// Draws the given string as large as possible inside the boundaries Rectangle without going
@@ -20,7 +22,8 @@ namespace StyleStar
         /// the string will be absolutely-centered inside of the boundaries.
         static public void DrawString(this SpriteBatch spriteBatch, SpriteFont font, string strToDraw, Rectangle boundaries, Color color, Justification just = Justification.Center)
         {
-            Vector2 size = font.MeasureString(strToDraw);
+
+            Vector2 size = MeasureString(font, strToDraw);
 
             float xScale = (boundaries.Width / size.X);
             float yScale = (boundaries.Height / size.Y);
@@ -48,15 +51,130 @@ namespace StyleStar
                     break;
             }
 
-            // A bunch of settings where we just want to use reasonable defaults.
-            float rotation = 0.0f;
-            Vector2 spriteOrigin = new Vector2(0, 0);
-            float spriteLayer = 0.0f; // all the way in the front
-            SpriteEffects spriteEffects = new SpriteEffects();
-
             // Draw the string to the sprite batch!
-            spriteBatch.DrawString(font, strToDraw, position, color, rotation, spriteOrigin, scale, spriteEffects, spriteLayer);
+            if(_drawBoundingBox)
+                spriteBatch.Draw(Globals.Textures["BeatMark"], new Rectangle((int)boundaries.X, (int)boundaries.Y, boundaries.Width, boundaries.Height), Color.Red);
+            spriteBatch.DrawStringAbs(font, strToDraw, position, color, scale);
         } // end DrawString()
+
+        public static void DrawStringFixedHeight(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float maxFontHeight, Justification justification = Justification.Middle, float strokeWidth = 0.0f, Color? strokeColor = null)
+        {
+            Vector2 size = MeasureString(font, text);
+            float yScale = (maxFontHeight / size.Y);
+            int strWidth = (int)Math.Round(size.X * yScale);
+            int strHeight = (int)Math.Round(size.Y * yScale);
+
+            float xOffset = 0, yOffset = 0;
+            if (justification.HasFlag(Justification.Right))
+            {
+                xOffset += -strWidth;
+            }
+            else if (justification.HasFlag(Justification.Center))
+            {
+                xOffset += -strWidth / 2;
+            }
+            if (!justification.HasFlag(Justification.Bottom) && !justification.HasFlag(Justification.Middle))
+            {
+                //yOffset += 0;
+            }
+            else if (justification.HasFlag(Justification.Bottom))
+            {
+                yOffset += -strHeight;
+            }
+            else if (justification.HasFlag(Justification.Middle))
+            {
+                yOffset += -strHeight / 2;
+            }
+            Vector2 offset = new Vector2(xOffset, yOffset);
+
+            if (_drawBoundingBox)
+                sb.Draw(Globals.Textures["BeatMark"], new Rectangle((int)(position.X + offset.X), (int)(position.Y + offset.Y), strWidth, strHeight), Color.Red);
+
+            if (strokeWidth > 0.0f)
+            {
+                if (strokeColor == null)
+                    strokeColor = Color.Black;
+                DrawStringStroke(sb, font, text, position + offset, strokeWidth, (Color)strokeColor, yScale, StrokeStyle.All);
+            }
+            sb.DrawStringAbs(font, text, position + offset, color, yScale);
+
+        }
+
+        public static void DrawStringAbs(this SpriteBatch sb, SpriteFont font, string strToDraw, Vector2 position, Color color)
+        {
+            Vector2 size = MeasureString(font, strToDraw);
+            float yDiff = font.LineSpacing - size.Y;
+            position.Y -= yDiff;
+
+            sb.DrawString(font, strToDraw, position, color);
+        }
+
+        public static void DrawStringAbs(this SpriteBatch sb, SpriteFont font, string strToDraw, Vector2 position, Color color, float scale)
+        {
+            Vector2 size = MeasureString(font, strToDraw);
+            int newLines = strToDraw.Count(c => c == '\n');
+            float yDiff = (font.LineSpacing * (newLines + 1)) - size.Y;
+            position.Y -= yDiff * scale;
+
+            sb.DrawString(font, strToDraw, position, color, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0.0f);
+        }
+
+        public static Vector2 MeasureString(SpriteFont font, string text)
+        {
+            if (text.Length == 0)
+                return Vector2.Zero;
+
+            var width = 0.0f;
+            var finalLineHeight = 0.0f;
+
+            var offset = Vector2.Zero;
+            bool firstGlyphOfLine = true;
+
+            var glyphs = font.GetGlyphs();
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                var c = text[i];
+
+                if (c == '\r')
+                    continue;
+
+                if (c == '\n')
+                {
+                    offset.X = 0;
+                    offset.Y += font.LineSpacing;
+                    firstGlyphOfLine = true;
+                    continue;
+                }
+
+                var currentGlyph = glyphs.ContainsKey(c) ? glyphs[c] : new SpriteFont.Glyph();
+                if (currentGlyph.WidthIncludingBearings == 0.0f)
+                    continue;
+
+                if (firstGlyphOfLine)
+                {
+                    offset.X = Math.Max(currentGlyph.LeftSideBearing, 0);
+                    firstGlyphOfLine = false;
+                }
+                else
+                {
+                    offset.X += font.Spacing + currentGlyph.LeftSideBearing;
+                }
+
+                offset.X += currentGlyph.Width;
+
+                var proposedWidth = offset.X + Math.Max(currentGlyph.RightSideBearing, 0);
+                if (proposedWidth > width)
+                    width = proposedWidth;
+
+                offset.X += currentGlyph.RightSideBearing;
+
+                if (currentGlyph.Cropping.Height > finalLineHeight)
+                    finalLineHeight = currentGlyph.Cropping.Height;
+            }
+
+            return new Vector2(width, offset.Y + finalLineHeight);
+        }
 
         public static Rectangle Shift (this Rectangle rect, int x, int y)
         {
@@ -70,10 +188,9 @@ namespace StyleStar
 
         public static void DrawStringJustify(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float scale, Justification justification, float strokeSize, Color strokeColor)
         {
-            Vector2 size = font.MeasureString(text);
+            //Vector2 size = font.MeasureString(text);
+            Vector2 size = MeasureString(font, text);
             float trueY = size.Y * scale;
-            if (Globals.FontScalingFactor.ContainsKey(font))
-                trueY = Globals.FontScalingFactor[font].Item1 * scale + Globals.FontScalingFactor[font].Item2;
             float xOffset = 0, yOffset = 0;
             if (justification.HasFlag(Justification.Right))
             {
@@ -91,12 +208,16 @@ namespace StyleStar
             {
                 yOffset += -size.Y * scale + trueY;
             }
+            else if (justification.HasFlag(Justification.Middle))
+            {
+                yOffset += -trueY / 2;
+            }
             Vector2 offset = new Vector2(xOffset, yOffset);
             if(strokeSize > 0)
             {
                 DrawStringStroke(sb, font, text, position + offset, strokeSize, strokeColor, scale, StrokeStyle.All);
             }
-            sb.DrawString(font, text, position + offset, color, 0, new Vector2(0, 0), scale, SpriteEffects.None, 0);
+            sb.DrawStringAbs(font, text, position + offset, color, scale);
         }
 
         public static void DrawStringStroke(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, float strokeSize, Color color, float scale)
@@ -106,16 +227,16 @@ namespace StyleStar
 
         public static void DrawStringStroke(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, float strokeSize, Color color, float scale, StrokeStyle style)
         {
-            sb.DrawString(font, text, new Vector2(position.X - strokeSize, position.Y - strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-            sb.DrawString(font, text, new Vector2(position.X + strokeSize, position.Y - strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-            sb.DrawString(font, text, new Vector2(position.X - strokeSize, position.Y + strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-            sb.DrawString(font, text, new Vector2(position.X + strokeSize, position.Y + strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-            if(style == StrokeStyle.All)
+            sb.DrawStringAbs(font, text, new Vector2(position.X - strokeSize, position.Y - strokeSize), color, scale);
+            sb.DrawStringAbs(font, text, new Vector2(position.X + strokeSize, position.Y - strokeSize), color, scale);
+            sb.DrawStringAbs(font, text, new Vector2(position.X - strokeSize, position.Y + strokeSize), color, scale);
+            sb.DrawStringAbs(font, text, new Vector2(position.X + strokeSize, position.Y + strokeSize), color, scale);
+            if (style == StrokeStyle.All)
             {
-                sb.DrawString(font, text, new Vector2(position.X - strokeSize, position.Y), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-                sb.DrawString(font, text, new Vector2(position.X + strokeSize, position.Y), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-                sb.DrawString(font, text, new Vector2(position.X, position.Y + strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
-                sb.DrawString(font, text, new Vector2(position.X, position.Y - strokeSize), color, 0, Globals.Origin, scale, SpriteEffects.None, 0);
+                sb.DrawStringAbs(font, text, new Vector2(position.X - strokeSize, position.Y), color, scale);
+                sb.DrawStringAbs(font, text, new Vector2(position.X + strokeSize, position.Y), color, scale);
+                sb.DrawStringAbs(font, text, new Vector2(position.X, position.Y + strokeSize), color, scale);
+                sb.DrawStringAbs(font, text, new Vector2(position.X, position.Y - strokeSize), color, scale);
             }
         }
 

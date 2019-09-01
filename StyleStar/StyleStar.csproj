@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="BpmChange.cs" />
     <Compile Include="Defines.cs" />
+    <Compile Include="FontLoader.cs" />
     <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
     <Compile Include="InputMonitor.cs" />
@@ -84,6 +85,10 @@
     </Reference>
     <Reference Include="Nett, Version=0.13.0.0, Culture=neutral, PublicKeyToken=605dcfe7a1d3365b, processorArchitecture=MSIL">
       <HintPath>..\packages\Nett.0.13.0\lib\net40\Nett.dll</HintPath>
+    </Reference>
+    <Reference Include="StbTrueTypeSharp, Version=1.21.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\lib\StbTrueTypeSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Windows.Forms" />
@@ -136,6 +141,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="app.manifest" />
+    <None Include="Content\Fonts\libre-franklin\librefranklin-blackitalic.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Fonts\RunningStart.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\Programming\BASS\bass.dll">

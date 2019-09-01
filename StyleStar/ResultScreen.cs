@@ -16,14 +16,16 @@ namespace StyleStar
         private static Vector2 stringOrigin = new Vector2(0, 0);
         private static Rectangle albumRect = new Rectangle(150, 200, 130, 130);
 
-        private static Vector2 gradeLabelsPoint = new Vector2(836, 552);
+        private static Vector2 gradeLabelsPoint = new Vector2(845, 580);
         private static Vector2 gradeLabelOffset = new Vector2(-24, 40);
 
-        private static Vector2 gradeTotalPoint = new Vector2(650, 552);
+        private static Vector2 gradeTotalPoint = new Vector2(730, 580);
 
-        private static Vector2 accuracyLabel = new Vector2(680, 408);
+        private static Vector2 accuracyLabel = new Vector2(820, 430);
 
         private static Vector2 starPoint = new Vector2(222, 180);
+
+        private static float fontHeightMain = 25.0f;
 
         public static void Draw(SpriteBatch sb, NoteCollection song)
         {
@@ -36,32 +38,23 @@ namespace StyleStar
             sb.Draw(Globals.Textures["ResultBgRight"], new Vector2(731, 0), Color.White);
 
             // Title
-            sb.DrawStringJustify(Globals.Font["RunningStart"], "RESULTS", new Vector2(Globals.WindowSize.X / 2, 50), Color.White, 0.25f, Justification.Center | Justification.Top, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["RunningStart"], "RESULTS", new Vector2(Globals.WindowSize.X / 2, 30), Color.White, 50.0f, Justification.Center | Justification.Top, 2, Color.Black);
 
             // Grade Labels
-            sb.DrawStringStroke(Globals.Font["Franklin"], "STYLISH", gradeLabelsPoint, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], "STYLISH", gradeLabelsPoint, ThemeColors.Stylish, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], "COOL", gradeLabelsPoint + gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], "COOL", gradeLabelsPoint + gradeLabelOffset, ThemeColors.Good, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], "GOOD", gradeLabelsPoint + 2* gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], "GOOD", gradeLabelsPoint + 2* gradeLabelOffset, ThemeColors.Bad, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], "MISS", gradeLabelsPoint + 3 * gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], "MISS", gradeLabelsPoint + 3 * gradeLabelOffset, ThemeColors.Miss, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "STYLISH", gradeLabelsPoint, ThemeColors.Stylish, fontHeightMain, Justification.Left | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "COOL", gradeLabelsPoint + gradeLabelOffset, ThemeColors.Good, fontHeightMain, Justification.Left | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "GOOD", gradeLabelsPoint + 2* gradeLabelOffset, ThemeColors.Bad, fontHeightMain, Justification.Left | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "MISS", gradeLabelsPoint + 3 * gradeLabelOffset, ThemeColors.Miss, fontHeightMain, Justification.Left | Justification.Bottom, 2, Color.Black);
 
             // Note Counts
-            sb.DrawStringStroke(Globals.Font["Franklin"], song.PerfectCount.ToString("D4"), gradeTotalPoint, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], song.PerfectCount.ToString("D4"), gradeTotalPoint, Color.White, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], song.GreatCount.ToString("D4"), gradeTotalPoint + gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], song.GreatCount.ToString("D4"), gradeTotalPoint + gradeLabelOffset, Color.White, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], song.GoodCount.ToString("D4"), gradeTotalPoint + 2 * gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], song.GoodCount.ToString("D4"), gradeTotalPoint + 2 * gradeLabelOffset, Color.White, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringStroke(Globals.Font["Franklin"], song.MissCount.ToString("D4"), gradeTotalPoint + 3 * gradeLabelOffset, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], song.MissCount.ToString("D4"), gradeTotalPoint + 3 * gradeLabelOffset, Color.White, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.PerfectCount.ToString("D4"), gradeTotalPoint, Color.White, fontHeightMain, Justification.Right | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.GreatCount.ToString("D4"), gradeTotalPoint + gradeLabelOffset, Color.White, fontHeightMain, Justification.Right | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.GoodCount.ToString("D4"), gradeTotalPoint + 2 * gradeLabelOffset, Color.White, fontHeightMain, Justification.Right | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.MissCount.ToString("D4"), gradeTotalPoint + 3 * gradeLabelOffset, Color.White, fontHeightMain, Justification.Right | Justification.Bottom, 2, Color.Black);
 
             // Score
-            sb.DrawStringStroke(Globals.Font["Franklin"], "Accuracy", accuracyLabel, 2.0f, Color.Black, 0.15f, StrokeStyle.All);
-            sb.DrawString(Globals.Font["Franklin"], "Accuracy", accuracyLabel, Color.White, 0, Globals.Origin, 0.15f, SpriteEffects.None, 0);
-            sb.DrawStringJustify(Globals.Font["Franklin"], (song.CurrentScore / song.TotalNotes * 100.0f).ToString("F3") + "%", new Vector2(780, 504), Color.White, 0.35f, Justification.Right | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Accuracy", accuracyLabel, Color.White, fontHeightMain, Justification.Right | Justification.Bottom, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], (song.CurrentScore / song.TotalNotes * 100.0f).ToString("F3") + "%", new Vector2(780, 500), Color.White, 50.0f, Justification.Right | Justification.Bottom, 2, Color.Black);
 
             // Clear/Fail String
             string result = "";
@@ -98,16 +91,16 @@ namespace StyleStar
                 default:
                     break;
             }
-            sb.DrawStringJustify(Globals.Font["Franklin"], result, new Vector2(754, 518), fontCol, 0.15f, Justification.Right | Justification.Top, 2, strokeCol);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], result, gradeTotalPoint - gradeLabelOffset, fontCol, fontHeightMain, Justification.Right | Justification.Bottom, 2, strokeCol);
 
             // Stars
             int id = GetStarID((float)(song.CurrentScore / song.TotalNotes * 100.0f));
             sb.Draw(Globals.Textures["Star" + id], starPoint, Color.White);
 
             // Song Info
-            sb.DrawStringJustify(Globals.Font["Franklin"], song.Metadata.Title, new Vector2(Globals.WindowSize.X / 2, 90), Color.White, 0.15f, Justification.Center | Justification.Top, 2, Color.Black);
-            sb.DrawStringJustify(Globals.Font["Franklin"], song.Metadata.Artist, new Vector2(Globals.WindowSize.X / 2, 130), Color.White, 0.15f, Justification.Center | Justification.Top, 2, Color.Black);
-            sb.DrawStringJustify(Globals.Font["Franklin"], "Lv. " + song.Metadata.Level.ToString("D2"), new Vector2(Globals.WindowSize.X / 2, 170), Color.White, 0.15f, Justification.Center | Justification.Top, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.Metadata.Title, new Vector2(Globals.WindowSize.X / 2, 100), Color.White, fontHeightMain + 5.0f, Justification.Center | Justification.Top, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.Metadata.Artist, new Vector2(Globals.WindowSize.X / 2, 140), Color.White, fontHeightMain, Justification.Center | Justification.Top, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Lv. " + song.Metadata.Level.ToString("D2"), new Vector2(Globals.WindowSize.X / 2, 170), Color.White, fontHeightMain, Justification.Center | Justification.Top, 2, Color.Black);
 
             // Album cover?
             // sb.Draw(song.Metadata.AlbumImage, albumRect, Color.White);

@@ -9,6 +9,8 @@ using System.IO;
 using Microsoft.Xna.Framework.Input.Touch;
 using System.Runtime.InteropServices;
 using Nett;
+using StbTrueTypeSharp;
+using System.Reflection;
 
 namespace StyleStar
 {
@@ -79,6 +81,11 @@ namespace StyleStar
         Texture2D loadingScreenLeft;
         Texture2D loadingScreenRight;
 
+        // Font Info
+        private const int fontBitmapWidth = 8192;
+        private const int fontBitmapHeight = 8192;
+        private SpriteFont fontRunningStart;
+
         // Hit Debug
         double hitBeat = 0;
         double closestNoteBeat = 0;
@@ -114,7 +121,7 @@ namespace StyleStar
             {
                 var configTable = Toml.ReadFile(Defines.ConfigFile).ToDictionary();
 
-                if(configTable.ContainsKey("KeyConfig"))
+                if (configTable.ContainsKey("KeyConfig"))
                 {
                     InputMonitor.SetKeys((Dictionary<string, object>)configTable["KeyConfig"]);
                 }
@@ -196,10 +203,8 @@ namespace StyleStar
             Globals.Font.Add("Bold", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Bold"));
             Globals.Font.Add("Italic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Italic"));
             Globals.Font.Add("BoldItalic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-BoldItalic"));
-            Globals.Font.Add("Franklin", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
-            Globals.Font.Add("RunningStart", Content.Load<SpriteFont>("Fonts/RunningStart"));
-            Globals.FontScalingFactor.Add(Globals.Font["Franklin"], new Tuple<float, float>(43.857f, -.486f));
-            Globals.FontScalingFactor.Add(Globals.Font["RunningStart"], new Tuple<float, float>(160, 16));
+            Globals.Font.Add("FranklinMG", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
+            Globals.Font.Add("RunningStartMG", Content.Load<SpriteFont>("Fonts/RunningStart"));
 
             // Load songs
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -230,6 +235,10 @@ namespace StyleStar
             folderParams.Add(new FolderParams() { Type = SortType.Title, Name = "SORT BY\nTITLE" });
             folderParams.Add(new FolderParams() { Type = SortType.Artist, Name = "SORT BY\nARTIST" });
             folderParams.Add(new FolderParams() { Type = SortType.Level, Name = "SORT BY\nLEVEL" });
+
+            // Load fonts dynamically
+            Globals.Font.Add("Franklin", FontLoader.LoadFont("Content/Fonts/libre-franklin/librefranklin-blackitalic.ttf", 144));
+            Globals.Font.Add("RunningStart", FontLoader.LoadFont("Content/Fonts/RunningStart.ttf", 144));
         }
 
         /// <summary>
@@ -328,7 +337,7 @@ namespace StyleStar
                         }
 
                         //if (kbState.IsKeyDown(Keys.Right) && !prevKbState.IsKeyDown(Keys.Right))
-                        if(InputMonitor.Monitors[Inputs.Right].State == KeyState.Press)
+                        if (InputMonitor.Monitors[Inputs.Right].State == KeyState.Press)
                         {
                             currentSongLevelIndex++;
                             if (currentSongLevelIndex > 2)
@@ -400,7 +409,7 @@ namespace StyleStar
                     break;
                 case Mode.GamePlay:
                     // If we're entering or leaving a loading screen, block other inputs
-                    if(enterLoadingScreen || leavingLoadingScreen)
+                    if (enterLoadingScreen || leavingLoadingScreen)
                     {
                         if (gameTime.TotalGameTime.TotalMilliseconds > (loadingScreenTime + loadingScreenTransition + loadingScreenWait))
                         {
@@ -480,8 +489,8 @@ namespace StyleStar
                                 if (stepList.Count > 0)
                                     closestNoteBeat = stepList.First().BeatLocation;
                                 uint id = (uint)random.Next(0, int.MaxValue);
-                                if(touchCollection.Points.TryAdd(id, new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id }));
-                                    KeyDictionary.Add(touchkeys[i], id);
+                                if (touchCollection.Points.TryAdd(id, new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id })) ;
+                                KeyDictionary.Add(touchkeys[i], id);
 
                                 motionCollection.JumpBeat = double.NaN;
                                 prevKeys[i] = true;
@@ -489,7 +498,7 @@ namespace StyleStar
                             else if (!kbState.IsKeyDown(touchkeys[i]) && prevKbState.IsKeyDown(touchkeys[i]))
                             {
                                 TouchPoint pt;
-                                if(touchCollection.Points.TryRemove(KeyDictionary[touchkeys[i]], out pt))
+                                if (touchCollection.Points.TryRemove(KeyDictionary[touchkeys[i]], out pt))
                                     KeyDictionary.Remove(touchkeys[i]);
 
                                 if (touchCollection.Points.Count == 0)
@@ -518,7 +527,7 @@ namespace StyleStar
                         }
                         else if (Globals.IsAutoModeEnabled)
                         {
-                            if(Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
+                            if (Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
                             {
                                 step.HitResult.WasHit = true;
                                 step.HitResult.Difference = 0;
@@ -540,7 +549,7 @@ namespace StyleStar
                     foreach (var hold in holdList)
                     {
                         // Check start note if necessary
-                        if(!hold.StartNote.HitResult.WasHit)
+                        if (!hold.StartNote.HitResult.WasHit)
                         {
                             //var stepTimeMS = ((hold.StartNote.BeatLocation - currentBeat) * 60 / Globals.CurrentBpm);
                             var stepTimeMS = Globals.GetSecAtBeat(hold.StartNote.BeatLocation) - currentTime;
@@ -584,7 +593,7 @@ namespace StyleStar
                             }
                             else if (Globals.IsAutoModeEnabled)
                             {
-                                if(Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
+                                if (Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
                                 {
                                     shuffle.HitResult.WasHit = true;
                                     shuffle.HitResult.Difference = 0;
@@ -637,7 +646,7 @@ namespace StyleStar
                         else if (motion.Motion == Motion.Up && motionTimeMS < MotionTiming.JumpPerfectCheck)
                         {
                             // If there's no feet on the pad within the perfect window, it counts
-                            if(touchCollection.Points.Count == 0)
+                            if (touchCollection.Points.Count == 0)
                             {
                                 motion.HitResult.WasHit = true;
                                 motion.HitResult.Difference = (float)motionTimeMS;
@@ -750,7 +759,7 @@ namespace StyleStar
                 default:
                     break;
             }
-            
+
             // TODO: Add your update logic here
             updateRate = 1.0f / (float)(gameTime.ElapsedGameTime.TotalMilliseconds / 1000);
 
@@ -767,7 +776,7 @@ namespace StyleStar
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            if(enableProfiling)
+            if (enableProfiling)
                 stopwatch.Restart();
             var log = new DrawCycleEventLog();
 
@@ -803,7 +812,7 @@ namespace StyleStar
 
                                 spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
                                 spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
-                                spriteBatch.DrawString(Globals.Font["Franklin"], folderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 22, 225, 88), Color.White);
+                                spriteBatch.DrawString(Globals.Font["Franklin"], folderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
                                 spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                             }
 
@@ -818,7 +827,7 @@ namespace StyleStar
 
                                 spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
                                 spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
-                                spriteBatch.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 22, 225, 88), Color.White);
+                                spriteBatch.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
                                 spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                             }
 
@@ -902,16 +911,16 @@ namespace StyleStar
                             spriteBatch.Draw(Globals.Textures["SsGoBack"], Globals.ItemOrigin + new Vector2(-40f, -70f), Color.White);
                             spriteBatch.Draw(Globals.Textures["SsSongSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
 
-                            spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].Title, new Vector2(1220, 560), Color.White, 0.3f, Justification.Bottom | Justification.Right);
-                            spriteBatch.DrawStringJustify(Globals.Font["Franklin"], songlist[currentSongIndex].Artist, new Vector2(1220, 600), Color.White, 0.2f, Justification.Bottom | Justification.Right);
                             // Metadata may not contain BPM info, if it's empty, check the first song
                             string bpm = "???";
                             if (songlist[currentSongIndex].BpmIndex.Count > 0)
                                 bpm = songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
                             else if (songlist[currentSongIndex].IsMetadataFile && songlist[currentSongIndex].BpmIndex.Count == 0 && songlist[currentSongIndex].ChildMetadata.Count > 0)
                                 bpm = songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
-                            spriteBatch.DrawStringJustify(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 0.18f, Justification.Bottom | Justification.Right);
-                            spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "Choreo: " + songlist[currentSongIndex].Designer, new Vector2(1220, 680), Color.White, 0.14f, Justification.Bottom | Justification.Right);
+                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
+                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
+                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 20.0f, Justification.Right | Justification.Bottom);
+                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + songlist[currentSongIndex].Designer, new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
                         }
 
                         if (Globals.IsAutoModeEnabled)
@@ -934,7 +943,6 @@ namespace StyleStar
                     //spriteBatch.Begin();
                     //spriteBatch.Draw(background, bgRect, Color.White);
                     //spriteBatch.End();
-
 
                     noteLanes.Draw(view, projection);
                     noteLaneAccent1l.Draw(view, projection);
@@ -975,7 +983,7 @@ namespace StyleStar
                         var holdStart = holds.Count() - 1;
                         for (int i = 0; i < holds.Count(); i++)
                             holds.ElementAt(i).Draw(currentBeat, view, projection, holdStart - i);
-                            //holds.ElementAt(i).Draw(currentBeat, view, projection);
+                        //holds.ElementAt(i).Draw(currentBeat, view, projection);
 
                         if (enableProfiling)
                             log.AddEvent(stopwatch.ElapsedMilliseconds, "Holds Drawn");
@@ -998,7 +1006,7 @@ namespace StyleStar
                     }
 
                     // Draw Hit debugging
-                    if(false)
+                    if (false)
                     {
                         spriteBatch.Begin();
                         spriteBatch.DrawString(debugFont, "HitBeat: " + hitBeat.ToString("F4"), new Vector2(1000, 10), Color.Black);
@@ -1022,17 +1030,18 @@ namespace StyleStar
                     // Draw UI elements
                     spriteBatch.Begin();
                     spriteBatch.Draw(Globals.Textures["GpLowerBG"], new Vector2(0, 599), Color.Black);
-                    float yTopRow = 625f;
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "SCROLL", new Vector2(50, yTopRow), Color.White, 0.08f, Justification.Center);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "ACCURACY", new Vector2(120, yTopRow), Color.White, 0.08f, Justification.Left);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), currentSongNotes.Metadata.Difficulty).ToUpper(), new Vector2(1200, yTopRow), Color.White, 0.08f, Justification.Center);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Title, new Vector2(1150, yTopRow), Color.White, 0.2f, Justification.Right);
-                    float yBottomRow = 685f;
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), new Vector2(50, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.000"), new Vector2(120, yBottomRow), Color.White, 0.25f, Justification.Left | Justification.Bottom);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "/ 100.000%", new Vector2(335, yBottomRow), Color.White, 0.18f, Justification.Left | Justification.Bottom);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Artist, new Vector2(1150, yBottomRow), Color.White, 0.1f, Justification.Right | Justification.Bottom);
-                    spriteBatch.DrawStringJustify(Globals.Font["Franklin"], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 0.25f, Justification.Center | Justification.Bottom);
+                    float yTopRow = 615f;
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "SCROLL", new Vector2(60, yTopRow), Color.White, 10.0f, Justification.Center);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "ACCURACY", new Vector2(150, yTopRow), Color.White, 10.0f, Justification.Left);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], currentSongNotes.Metadata.Title, new Vector2(1140, yTopRow), Color.White, 40.0f, Justification.Right);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), currentSongNotes.Metadata.Difficulty).ToUpper(), new Vector2(1200, yTopRow), Color.White, 10.0f, Justification.Center);
+
+                    float yBottomRow = 700f;
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), new Vector2(60, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.000"), new Vector2(150, yBottomRow), Color.White, 40.0f, Justification.Left | Justification.Bottom);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "/ 100.000%", new Vector2(395, yBottomRow), Color.White, 20.0f, Justification.Left | Justification.Bottom);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], currentSongNotes.Metadata.Artist, new Vector2(1140, yBottomRow), Color.White, 30.0f, Justification.Right | Justification.Bottom);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
 
                     if (Globals.IsAutoModeEnabled)
                         spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Width - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
@@ -1040,7 +1049,7 @@ namespace StyleStar
                     spriteBatch.End();
 
                     // Draw hit stats
-                    if(true)
+                    if (true)
                     {
                         var numStepHit = currentSongNotes.Steps.Where(x => x.HitResult.WasHit && x.HitResult.Difference != Timing.MissFlag).Count();
                         var numMotionHit = currentSongNotes.Motions.Where(x => x.HitResult.WasHit && x.HitResult.Difference != Timing.MissFlag).Count();
