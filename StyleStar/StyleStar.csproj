@@ -46,6 +46,7 @@
     <Compile Include="Defines.cs" />
     <Compile Include="Grade.cs" />
     <Compile Include="HitResult.cs" />
+    <Compile Include="InputMonitor.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Motion.cs" />
     <Compile Include="BeatMarker.cs" />
@@ -80,6 +81,9 @@
     </Reference>
     <Reference Include="MonoGame.Framework">
       <HintPath>$(MonoGameInstallDirectory)\MonoGame\v3.0\Assemblies\DesktopGL\MonoGame.Framework.dll</HintPath>
+    </Reference>
+    <Reference Include="Nett, Version=0.13.0.0, Culture=neutral, PublicKeyToken=605dcfe7a1d3365b, processorArchitecture=MSIL">
+      <HintPath>..\packages\Nett.0.13.0\lib\net40\Nett.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Windows.Forms" />

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Xna.Framework.Input.Touch;
 using System.Runtime.InteropServices;
+using Nett;
 
 namespace StyleStar
 {
@@ -103,11 +104,21 @@ namespace StyleStar
 
             this.graphics.SynchronizeWithVerticalRetrace = false;
             base.IsFixedTimeStep = false;
+            //this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
 
             //m_event = Hook.GlobalEvents();
             //m_event.TouchMove += M_event_TouchMove;
 
-            //this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
+            // Load config file
+            if (File.Exists(Defines.ConfigFile))
+            {
+                var configTable = Toml.ReadFile(Defines.ConfigFile).ToDictionary();
+
+                if(configTable.ContainsKey("KeyConfig"))
+                {
+                    InputMonitor.SetKeys((Dictionary<string, object>)configTable["KeyConfig"]);
+                }
+            }
         }
 
         private void M_event_TouchMove(object sender, System.Windows.Forms.MouseEventArgs e)
@@ -240,11 +251,16 @@ namespace StyleStar
             KeyboardState kbState = Keyboard.GetState();
             MouseState mouseState = Mouse.GetState();
 
-            if (kbState.IsKeyDown(Keys.F4))
+            InputMonitor.Update(gameTime);
+
+            if (InputMonitor.Monitors[Inputs.Exit].State == KeyState.Press)
                 Exit();
 
             if ((kbState.IsKeyDown(Keys.RightAlt) || kbState.IsKeyDown(Keys.LeftAlt)) && kbState.IsKeyDown(Keys.Enter) && !prevKbState.IsKeyDown(Keys.Enter))
+            {
                 graphics.ToggleFullScreen();
+                return;
+            }
 
             switch (currentMode)
             {
@@ -291,7 +307,7 @@ namespace StyleStar
 
                     if (songlist.Count > 0)
                     {
-                        if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down) || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
+                        if (InputMonitor.Monitors[Inputs.Down].State == KeyState.Press || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
                         {
                             if (selectedFolderIndex == -1)
                                 currentFolderIndex = currentFolderIndex < (folderParams.Count - 1) ? ++currentFolderIndex : folderParams.Count - 1;
@@ -301,7 +317,7 @@ namespace StyleStar
                                 currentSongIndex = currentSongIndex < (songlist.Count - 1) ? ++currentSongIndex : songlist.Count - 1;
                         }
 
-                        if (kbState.IsKeyDown(Keys.Up) && !prevKbState.IsKeyDown(Keys.Up) || (mouseState.ScrollWheelValue > prevMouseState.ScrollWheelValue))
+                        if (InputMonitor.Monitors[Inputs.Up].State == KeyState.Press || (mouseState.ScrollWheelValue > prevMouseState.ScrollWheelValue))
                         {
                             if (selectedFolderIndex == -1)
                                 currentFolderIndex = currentFolderIndex > 0 ? --currentFolderIndex : 0;
@@ -311,14 +327,15 @@ namespace StyleStar
                                 currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
                         }
 
-                        if (kbState.IsKeyDown(Keys.Right) && !prevKbState.IsKeyDown(Keys.Right))
+                        //if (kbState.IsKeyDown(Keys.Right) && !prevKbState.IsKeyDown(Keys.Right))
+                        if(InputMonitor.Monitors[Inputs.Right].State == KeyState.Press)
                         {
                             currentSongLevelIndex++;
                             if (currentSongLevelIndex > 2)
                                 currentSongLevelIndex = 0;
                         }
 
-                        if ((kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
+                        if (InputMonitor.Monitors[Inputs.Select].State == KeyState.Press
                             || (!disableMouseClick && (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed)))
                         {
                             if (selectedFolderIndex == -1)
@@ -358,10 +375,10 @@ namespace StyleStar
                             }
                         }
 
-                        if ((kbState.IsKeyDown(Keys.Escape) && !prevKbState.IsKeyDown(Keys.Escape)) ||
-                            (kbState.IsKeyDown(Keys.Back) && !prevKbState.IsKeyDown(Keys.Back)) ||
-                            ((kbState.IsKeyDown(Keys.Left) && !prevKbState.IsKeyDown(Keys.Left)) ||
-                            (!disableMouseClick && (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed))))
+                        if (InputMonitor.Monitors[Inputs.Back].State == KeyState.Press ||
+                            InputMonitor.Monitors[Inputs.Back2].State == KeyState.Press ||
+                            InputMonitor.Monitors[Inputs.Left].State == KeyState.Press ||
+                            (!disableMouseClick && (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed)))
                         {
                             if (selectedFolderIndex != -1 && folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex != -1)
                             {
@@ -374,7 +391,7 @@ namespace StyleStar
                             }
                         }
 
-                        if (kbState.IsKeyDown(Keys.F2) && !prevKbState.IsKeyDown(Keys.F2))
+                        if (InputMonitor.Monitors[Inputs.Auto].State == KeyState.Press)
                             Globals.IsAutoModeEnabled = !Globals.IsAutoModeEnabled;
                     }
 
@@ -411,7 +428,7 @@ namespace StyleStar
                     }
 
                     // If user forfeits or song ends, move onto the result screen
-                    if (kbState.IsKeyDown(Keys.Escape))
+                    if (InputMonitor.Monitors[Inputs.Back].State == KeyState.Press)
                     {
                         currentSongNotes.SongEnd = SongEndReason.Forfeit;
                         enterLoadingScreen = true;
@@ -635,7 +652,7 @@ namespace StyleStar
                         gradeCollection.Set(gameTime, currentSongNotes.Steps.First());
 
                     // Mostly Debug things
-                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
+                    if (InputMonitor.Monitors[Inputs.Select].State == KeyState.Press)
                     {
                         if (!musicManager.IsPlaying)
                             musicManager.Play();
@@ -643,10 +660,10 @@ namespace StyleStar
                             musicManager.Pause();
                     }
 
-                    if (kbState.IsKeyDown(Keys.Down) && !prevKbState.IsKeyDown(Keys.Down))
+                    if (InputMonitor.Monitors[Inputs.Down].State == KeyState.Press)
                         Globals.SpeedScale -= 0.5;
 
-                    if (kbState.IsKeyDown(Keys.Up) && !prevKbState.IsKeyDown(Keys.Up))
+                    if (InputMonitor.Monitors[Inputs.Up].State == KeyState.Press)
                         Globals.SpeedScale += 0.5;
 
                     if (kbState.IsKeyDown(Keys.Delete) && !prevKbState.IsKeyDown(Keys.Delete))
@@ -724,7 +741,7 @@ namespace StyleStar
                             break;
                     }
 
-                    if (kbState.IsKeyDown(Keys.Enter) && kbState.IsKeyUp(Keys.LeftAlt) && kbState.IsKeyUp(Keys.RightAlt) && !prevKbState.IsKeyDown(Keys.Enter))
+                    if (InputMonitor.Monitors[Inputs.Select].State == KeyState.Press)
                     {
                         enterLoadingScreen = true;
                         loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;

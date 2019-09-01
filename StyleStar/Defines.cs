@@ -11,5 +11,7 @@ namespace StyleStar
         public static readonly string ChartExtension = ".ssf";
         public static readonly string InfoExtension = ".ssi";
         public static readonly string ZipExtension = ".ssz";
+
+        public static readonly string ConfigFile = "config.toml";
     }
 }
