@@ -26,6 +26,10 @@ namespace StyleStar
         public string Designer { get; set; }
         public Texture2D AlbumImage { get; set; }
         public string Jacket { get; set; }
+        public Texture2D TitleImage { get; set; }
+        public string TitleCard { get; set; }
+        public Texture2D ArtistImage { get; set; }
+        public string ArtistCard { get; set; }
         public Difficulty Difficulty { get; set; }
         public int Level { get; set; }
         public Color ColorFore { get; set; }
@@ -84,6 +88,10 @@ namespace StyleStar
                             Level = Convert.ToInt32(parse);
                         if (StringExtensions.TrySearchTag(line, "JACKET", out parse))
                             Jacket = parse;
+                        if (StringExtensions.TrySearchTag(line, "TITLECARD", out parse))
+                            TitleCard = parse;
+                        if (StringExtensions.TrySearchTag(line, "ARTISTCARD", out parse))
+                            ArtistCard = parse;
                         if (StringExtensions.TrySearchTag(line, "COLORFORE", out parse))
                             ColorFore = Util.ParseFromHex(parse);
                         if (StringExtensions.TrySearchTag(line, "COLORBACK", out parse))
@@ -112,13 +120,34 @@ namespace StyleStar
                 }
                 foreach (var child in children)
                     ChildMetadata.Add(new SongMetadata(this, child));
-                if (Jacket == null || Jacket == "")
+
+                if (String.IsNullOrEmpty(Jacket))
                     AlbumImage = Globals.Textures["FallbackJacket"];
                 else
                 {
                     using (FileStream fs = new FileStream(FilePath + Jacket, FileMode.Open))
                     {
                         AlbumImage = Texture2D.FromStream(Globals.GraphicsManager.GraphicsDevice, fs);
+                    }
+                }
+                if(!String.IsNullOrEmpty(TitleCard))
+                {
+                    if(File.Exists(FilePath + TitleCard))
+                    {
+                        using (FileStream fs = new FileStream(FilePath + TitleCard, FileMode.Open))
+                        {
+                            TitleImage = Texture2D.FromStream(Globals.GraphicsManager.GraphicsDevice, fs);
+                        }
+                    }
+                }
+                if (!String.IsNullOrEmpty(ArtistCard))
+                {
+                    if (File.Exists(FilePath + ArtistCard))
+                    {
+                        using (FileStream fs = new FileStream(FilePath + ArtistCard, FileMode.Open))
+                        {
+                            ArtistImage = Texture2D.FromStream(Globals.GraphicsManager.GraphicsDevice, fs);
+                        }
                     }
                 }
             }

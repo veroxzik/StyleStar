@@ -285,7 +285,7 @@ namespace StyleStar
                             {
                                 enterLoadingScreen = false;
                                 leavingLoadingScreen = true;
-                                var meta = songlist[currentSongIndex].IsMetadataFile ? songlist[currentSongIndex].ChildMetadata[currentSongLevelIndex] : songlist[currentSongIndex];
+                                var meta = songlist[currentSongIndex].IsMetadataFile ? songlist[currentSongIndex].ChildMetadata.FirstOrDefault(x=>(int)x.Difficulty == currentSongLevelIndex) : songlist[currentSongIndex];
                                 LoadSong(meta);
                                 // Set notelane textures
                                 noteLaneAccent1l.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
@@ -847,10 +847,24 @@ namespace StyleStar
                                 spriteBatch.Draw(Globals.Textures["SsAccentAlbum"], cardOffset, songlist[i].ColorFore.IfNull(ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f)));
                                 spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle((int)cardOffset.X + 284, (int)cardOffset.Y + 12, 96, 96), Color.White);
                                 spriteBatch.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
-                                titleFont = FontTools.ContainsJP(songlist[i].Title) ? "JP" : "Franklin";
-                                artistFont = FontTools.ContainsJP(songlist[i].Artist) ? "JP" : "Franklin";
-                                spriteBatch.DrawString(Globals.Font[titleFont], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
-                                spriteBatch.DrawString(Globals.Font[artistFont], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
+                                if(songlist[i].TitleImage == null)
+                                {
+                                    titleFont = FontTools.ContainsJP(songlist[i].Title) ? "JP" : "Franklin";
+                                    spriteBatch.DrawString(Globals.Font[titleFont], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
+                                }
+                                else
+                                {
+                                    spriteBatch.Draw(songlist[i].TitleImage, new Vector2(cardOffset.X + 60, cardOffset.Y + 16), null, Color.White, 0.0f, Vector2.Zero, 2.0f / 3.0f, SpriteEffects.None, 0.0f);
+                                }
+                                if(songlist[i].ArtistImage == null)
+                                {
+                                    artistFont = FontTools.ContainsJP(songlist[i].Artist) ? "JP" : "Franklin";
+                                    spriteBatch.DrawString(Globals.Font[artistFont], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
+                                }
+                                else
+                                {
+                                    spriteBatch.Draw(songlist[i].ArtistImage, new Vector2(cardOffset.X + 50, cardOffset.Y + 84), null, Color.White, 0.0f, Vector2.Zero, 2.0f / 3.0f, SpriteEffects.None, 0.0f);
+                                }
                                 spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                                 if (i == currentSongIndex)
                                 {
