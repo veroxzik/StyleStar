@@ -24,22 +24,23 @@ namespace StyleStar
             {
                 fontBaker.Add(File.ReadAllBytes(path), fontHeight, new[]
                 {
-                CharacterRange.BasicLatin,
-                CharacterRange.Latin1Supplement,
-                CharacterRange.LatinExtendedA,
-                CharacterRange.LatinExtendedB,
-                CharacterRange.Greek
-            });
+                    CharacterRange.BasicLatin,
+                    CharacterRange.Latin1Supplement,
+                    CharacterRange.LatinExtendedA,
+                    CharacterRange.LatinExtendedB,
+                    CharacterRange.Greek
+                });
             }
             else if (fontRange == FontRange.Japanese)
             {
                 fontBaker.Add(File.ReadAllBytes(path), fontHeight, new[]
                 {
-                CharacterRange.Hiragana,
-                CharacterRange.Katakana,
-                CharacterRange.CjkSymbolsAndPunctuation,
-                CharacterRange.CjkUnifiedIdeographs
-            });
+                    CharacterRange.BasicLatin,
+                    CharacterRange.Hiragana,
+                    CharacterRange.Katakana,
+                    CharacterRange.CjkSymbolsAndPunctuation,
+                    CharacterRange.CjkUnifiedIdeographs
+                });
             }
 
             var _charData = fontBaker.End();
@@ -114,5 +115,21 @@ namespace StyleStar
         }
     }
 
+    public static class FontTools
+    {
+        public static bool ContainsJP(string s)
+        {
+            if (s.Any(c => c >= CharacterRange.Hiragana.Start && c <= CharacterRange.Hiragana.End))
+                return true;
+            if (s.Any(c => c >= CharacterRange.Katakana.Start && c <= CharacterRange.Katakana.End))
+                return true;
+            if (s.Any(c => c >= CharacterRange.CjkUnifiedIdeographs.Start && c <= CharacterRange.CjkUnifiedIdeographs.End))
+                return true;
+            if (s.Any(c => c >= CharacterRange.CjkSymbolsAndPunctuation.Start && c <= CharacterRange.CjkSymbolsAndPunctuation.End))
+                return true;
+
+            return false;
+        }
+    }
 
 }

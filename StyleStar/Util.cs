@@ -116,7 +116,14 @@ namespace StyleStar
             float yDiff = (font.LineSpacing * (newLines + 1)) - size.Y;
             position.Y -= yDiff * scale;
 
-            sb.DrawString(font, strToDraw, position, color, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0.0f);
+            try
+            {
+                sb.DrawString(font, strToDraw, position, color, 0.0f, Vector2.Zero, scale, SpriteEffects.None, 0.0f);
+            }
+            catch (Exception e)
+            {
+                Logger.WriteEntry("Error trying to draw string: " + e.Message + " @ " + e.StackTrace);
+            }
         }
 
         public static Vector2 MeasureString(SpriteFont font, string text)

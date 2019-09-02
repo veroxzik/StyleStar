@@ -343,34 +343,6 @@
 /processorParam:TextureFormat=Compressed
 /build:Metrophobic28.spritefont
 
-#begin Fonts/Roboto/Roboto-Bold.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Color
-/build:Fonts/Roboto/Roboto-Bold.spritefont
-
-#begin Fonts/Roboto/Roboto-BoldItalic.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Color
-/build:Fonts/Roboto/Roboto-BoldItalic.spritefont
-
-#begin Fonts/Roboto/Roboto-Italic.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Color
-/build:Fonts/Roboto/Roboto-Italic.spritefont
-
-#begin Fonts/Roboto/Roboto-Regular.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Color
-/build:Fonts/Roboto/Roboto-Regular.spritefont
-
 #begin SongSelection_AlbumFrame.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -430,13 +402,6 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Gameplay_LowerBG.png
-
-#begin Fonts/libre-franklin/librefranklin-blackitalic.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Color
-/build:Fonts/libre-franklin/librefranklin-blackitalic.spritefont
 
 #begin SongSelection_Active.png
 /importer:TextureImporter
@@ -665,13 +630,6 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Result_BgLine3.png
-
-#begin Fonts/RunningStart.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Color
-/build:Fonts/RunningStart.spritefont
 
 #begin Star_0.png
 /importer:TextureImporter

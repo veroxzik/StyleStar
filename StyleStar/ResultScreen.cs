@@ -98,8 +98,11 @@ namespace StyleStar
             sb.Draw(Globals.Textures["Star" + id], starPoint, Color.White);
 
             // Song Info
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.Metadata.Title, new Vector2(Globals.WindowSize.X / 2, 100), Color.White, fontHeightMain + 5.0f, Justification.Center | Justification.Top, 2, Color.Black);
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.Metadata.Artist, new Vector2(Globals.WindowSize.X / 2, 140), Color.White, fontHeightMain, Justification.Center | Justification.Top, 2, Color.Black);
+            string titleFont = FontTools.ContainsJP(song.Metadata.Title) ? "JP" : "Franklin";
+            string artistFont = FontTools.ContainsJP(song.Metadata.Artist) ? "JP" : "Franklin";
+
+            sb.DrawStringFixedHeight(Globals.Font[titleFont], song.Metadata.Title, new Vector2(Globals.WindowSize.X / 2, 100), Color.White, fontHeightMain + 5.0f, Justification.Center | Justification.Top, 2, Color.Black);
+            sb.DrawStringFixedHeight(Globals.Font[artistFont], song.Metadata.Artist, new Vector2(Globals.WindowSize.X / 2, 140), Color.White, fontHeightMain, Justification.Center | Justification.Top, 2, Color.Black);
             sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Lv. " + song.Metadata.Level.ToString("D2"), new Vector2(Globals.WindowSize.X / 2, 170), Color.White, fontHeightMain, Justification.Center | Justification.Top, 2, Color.Black);
 
             // Album cover?

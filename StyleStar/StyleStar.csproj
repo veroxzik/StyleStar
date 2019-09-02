@@ -38,6 +38,7 @@
   <PropertyGroup>
     <ApplicationIcon>stylestar.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
@@ -142,6 +143,9 @@
     </None>
     <None Include="app.manifest" />
     <None Include="Content\Fonts\libre-franklin\librefranklin-blackitalic.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Content\Fonts\mplus-1p-heavy.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Content\Fonts\RunningStart.ttf">

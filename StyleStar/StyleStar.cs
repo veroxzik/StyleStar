@@ -199,12 +199,9 @@ namespace StyleStar
 
             debugFont = Content.Load<SpriteFont>("DebugFont");
             Globals.Font = new Dictionary<string, SpriteFont>();
-            Globals.Font.Add("Regular", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Regular"));
-            Globals.Font.Add("Bold", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Bold"));
-            Globals.Font.Add("Italic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-Italic"));
-            Globals.Font.Add("BoldItalic", Content.Load<SpriteFont>("Fonts/Roboto/Roboto-BoldItalic"));
-            Globals.Font.Add("FranklinMG", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
-            Globals.Font.Add("RunningStartMG", Content.Load<SpriteFont>("Fonts/RunningStart"));
+            //Globals.Font.Add("FranklinMG", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
+            //Globals.Font.Add("RunningStartMG", Content.Load<SpriteFont>("Fonts/RunningStart"));
+            //Globals.Font.Add("JPMG", Content.Load<SpriteFont>("Fonts/mplus-1p-heavy"));
 
             // Load songs
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -239,6 +236,7 @@ namespace StyleStar
             // Load fonts dynamically
             Globals.Font.Add("Franklin", FontLoader.LoadFont("Content/Fonts/libre-franklin/librefranklin-blackitalic.ttf", 144));
             Globals.Font.Add("RunningStart", FontLoader.LoadFont("Content/Fonts/RunningStart.ttf", 144));
+            Globals.Font.Add("JP", FontLoader.LoadFont("Content/Fonts/mplus-1p-heavy.ttf", 144, FontLoader.FontRange.Japanese));
         }
 
         /// <summary>
@@ -783,6 +781,9 @@ namespace StyleStar
             drawRate = 1.0f / (float)(gameTime.ElapsedGameTime.TotalMilliseconds / 1000);
             drawRateMin = Math.Min(drawRate, drawRateMin);
 
+            string titleFont = "";
+            string artistFont = "";
+
             switch (currentMode)
             {
                 case Mode.MainMenu:
@@ -846,8 +847,10 @@ namespace StyleStar
                                 spriteBatch.Draw(Globals.Textures["SsAccentAlbum"], cardOffset, songlist[i].ColorFore.IfNull(ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f)));
                                 spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle((int)cardOffset.X + 284, (int)cardOffset.Y + 12, 96, 96), Color.White);
                                 spriteBatch.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
-                                spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
-                                spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
+                                titleFont = FontTools.ContainsJP(songlist[i].Title) ? "JP" : "Franklin";
+                                artistFont = FontTools.ContainsJP(songlist[i].Artist) ? "JP" : "Franklin";
+                                spriteBatch.DrawString(Globals.Font[titleFont], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
+                                spriteBatch.DrawString(Globals.Font[artistFont], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
                                 spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                                 if (i == currentSongIndex)
                                 {
@@ -917,8 +920,12 @@ namespace StyleStar
                                 bpm = songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
                             else if (songlist[currentSongIndex].IsMetadataFile && songlist[currentSongIndex].BpmIndex.Count == 0 && songlist[currentSongIndex].ChildMetadata.Count > 0)
                                 bpm = songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
-                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
-                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
+
+                            titleFont = FontTools.ContainsJP(songlist[currentSongIndex].Title) ? "JP" : "Franklin";
+                            artistFont = FontTools.ContainsJP(songlist[currentSongIndex].Artist) ? "JP" : "Franklin";
+
+                            spriteBatch.DrawStringFixedHeight(Globals.Font[titleFont], songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
+                            spriteBatch.DrawStringFixedHeight(Globals.Font[artistFont], songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
                             spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 20.0f, Justification.Right | Justification.Bottom);
                             spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + songlist[currentSongIndex].Designer, new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
                         }
@@ -1030,6 +1037,8 @@ namespace StyleStar
                     // Draw UI elements
                     spriteBatch.Begin();
                     spriteBatch.Draw(Globals.Textures["GpLowerBG"], new Vector2(0, 599), Color.Black);
+                    titleFont = FontTools.ContainsJP(currentSongNotes.Metadata.Title) ? "JP" : "Franklin";
+                    artistFont = FontTools.ContainsJP(currentSongNotes.Metadata.Artist) ? "JP" : "Franklin";
                     float yTopRow = 615f;
                     spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "SCROLL", new Vector2(60, yTopRow), Color.White, 10.0f, Justification.Center);
                     spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "ACCURACY", new Vector2(150, yTopRow), Color.White, 10.0f, Justification.Left);
@@ -1040,8 +1049,8 @@ namespace StyleStar
                     spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), new Vector2(60, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
                     spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.000"), new Vector2(150, yBottomRow), Color.White, 40.0f, Justification.Left | Justification.Bottom);
                     spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "/ 100.000%", new Vector2(395, yBottomRow), Color.White, 20.0f, Justification.Left | Justification.Bottom);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], currentSongNotes.Metadata.Artist, new Vector2(1140, yBottomRow), Color.White, 30.0f, Justification.Right | Justification.Bottom);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font[titleFont], currentSongNotes.Metadata.Artist, new Vector2(1140, yBottomRow), Color.White, 30.0f, Justification.Right | Justification.Bottom);
+                    spriteBatch.DrawStringFixedHeight(Globals.Font[artistFont], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
 
                     if (Globals.IsAutoModeEnabled)
                         spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Width - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
