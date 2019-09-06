@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 
@@ -151,6 +152,34 @@ namespace StyleStar
             catch (Exception e)
             {
                 Logger.WriteEntry("Exception in SongMetadata.Parse() => Input: " + fileName + ", Exception: " + e.Message + ", Stack Trace: " + e.StackTrace + (e.InnerException != null ? ", Inner Exception: " + e.InnerException.Message : ""));
+            }
+        }
+
+        public string GetPropertyFromChild(string propertyName, int index)
+        {
+            string ret = "";
+            Type t = this.GetType();
+            PropertyInfo pi = t.GetProperty(propertyName);
+
+            if (ChildMetadata.Count > 0 && index < ChildMetadata.Count)
+            {
+                try
+                {
+                    ret = (string)pi.GetValue(ChildMetadata[index]);
+                    return ret;
+                }
+                catch
+                { }
+            }
+            
+            try
+            {
+                ret = (string)pi.GetValue(this);
+                return ret;
+            }
+            catch (Exception e)
+            {
+                return "";
             }
         }
     }

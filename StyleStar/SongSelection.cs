@@ -195,7 +195,7 @@ namespace StyleStar
                     sb.DrawStringFixedHeight(Globals.Font[titleFont], Songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
                     sb.DrawStringFixedHeight(Globals.Font[artistFont], Songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
                     sb.DrawStringFixedHeight(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 20.0f, Justification.Right | Justification.Bottom);
-                    sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + Songlist[currentSongIndex].Designer, new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
+                    sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + Songlist[currentSongIndex].GetPropertyFromChild("Designer", currentSongLevelIndex), new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
                 }
 
                 if (Globals.IsAutoModeEnabled)
