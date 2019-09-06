@@ -74,6 +74,7 @@
     <Compile Include="ThemeColors.cs" />
     <Compile Include="Touch.cs" />
     <Compile Include="TouchWindowsHook.cs" />
+    <Compile Include="UIScreen.cs" />
     <Compile Include="UserSettings.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>

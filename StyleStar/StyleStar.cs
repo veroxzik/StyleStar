@@ -1,16 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Input.Touch;
+using Nett;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Diagnostics;
 using System.IO;
-using Microsoft.Xna.Framework.Input.Touch;
-using System.Runtime.InteropServices;
-using Nett;
-using StbTrueTypeSharp;
-using System.Reflection;
+using System.Linq;
 
 namespace StyleStar
 {
@@ -50,16 +47,6 @@ namespace StyleStar
 
         NoteCollection currentSongNotes;
         SongMetadata currentSongMeta;
-
-        // Song Selection
-        List<SongMetadata> songlist = new List<SongMetadata>();
-        int currentSongIndex = 0;
-        int currentFolderIndex = 0;
-        int currentLevelIndex = 0;
-        int selectedFolderIndex = -1;
-        int selectedLevelIndex = -1;
-        int currentSongLevelIndex = 0;  // Used to track difficulty switches
-        List<FolderParams> folderParams = new List<FolderParams>();
 
         KeyboardState prevKbState;
         MouseState prevMouseState;
@@ -204,34 +191,7 @@ namespace StyleStar
             //Globals.Font.Add("JPMG", Content.Load<SpriteFont>("Fonts/mplus-1p-heavy"));
 
             // Load songs
-            DirectoryInfo di = new DirectoryInfo("Songs");
-            var folders = di.EnumerateDirectories();
-            foreach (var folder in folders)
-            {
-                // If a folder contains an *.ssi file, use that to load charts
-                // Otherwise, load each chart individually
-                var files = folder.EnumerateFiles();
-                var info = files.Where(f => f.FullName.EndsWith(Defines.InfoExtension));
-                if (info != null && info.Count() > 0)
-                {
-                    foreach (var file in info)
-                    {
-                        songlist.Add(new SongMetadata(file.FullName));
-                    }
-                }
-                else
-                {
-                    var charts = files.Where(f => f.FullName.EndsWith(Defines.ChartExtension));
-                    if (charts != null && charts.Count() > 0)
-                    {
-                        foreach (var chart in charts)
-                            songlist.Add(new SongMetadata(chart.FullName));
-                    }
-                }
-            }
-            folderParams.Add(new FolderParams() { Type = SortType.Title, Name = "SORT BY\nTITLE" });
-            folderParams.Add(new FolderParams() { Type = SortType.Artist, Name = "SORT BY\nARTIST" });
-            folderParams.Add(new FolderParams() { Type = SortType.Level, Name = "SORT BY\nLEVEL" });
+            SongSelection.ImportSongs("Songs");
 
             // Load fonts dynamically
             Globals.Font.Add("Franklin", FontLoader.LoadFont("Content/Fonts/libre-franklin/librefranklin-blackitalic.ttf", 144));
@@ -285,7 +245,7 @@ namespace StyleStar
                             {
                                 enterLoadingScreen = false;
                                 leavingLoadingScreen = true;
-                                var meta = songlist[currentSongIndex].IsMetadataFile ? songlist[currentSongIndex].ChildMetadata.FirstOrDefault(x=>(int)x.Difficulty == currentSongLevelIndex) : songlist[currentSongIndex];
+                                var meta = SongSelection.GetCurrentSongMeta();
                                 LoadSong(meta);
                                 // Set notelane textures
                                 noteLaneAccent1l.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
@@ -312,71 +272,29 @@ namespace StyleStar
                     //loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                     // END TEMP
 
-                    if (songlist.Count > 0)
+                    if (SongSelection.Songlist.Count > 0)
                     {
                         if (InputMonitor.Monitors[Inputs.Down].State == KeyState.Press || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
                         {
-                            if (selectedFolderIndex == -1)
-                                currentFolderIndex = currentFolderIndex < (folderParams.Count - 1) ? ++currentFolderIndex : folderParams.Count - 1;
-                            else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
-                                currentLevelIndex = currentLevelIndex < 9 ? ++currentLevelIndex : 9;
-                            else
-                                currentSongIndex = currentSongIndex < (songlist.Count - 1) ? ++currentSongIndex : songlist.Count - 1;
+                            SongSelection.ScrollDown();
                         }
 
                         if (InputMonitor.Monitors[Inputs.Up].State == KeyState.Press || (mouseState.ScrollWheelValue > prevMouseState.ScrollWheelValue))
                         {
-                            if (selectedFolderIndex == -1)
-                                currentFolderIndex = currentFolderIndex > 0 ? --currentFolderIndex : 0;
-                            else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
-                                currentLevelIndex = currentLevelIndex > 0 ? --currentLevelIndex : 0;
-                            else
-                                currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
+                            SongSelection.ScrollUp();
                         }
 
                         //if (kbState.IsKeyDown(Keys.Right) && !prevKbState.IsKeyDown(Keys.Right))
                         if (InputMonitor.Monitors[Inputs.Right].State == KeyState.Press)
                         {
-                            currentSongLevelIndex++;
-                            if (currentSongLevelIndex > 2)
-                                currentSongLevelIndex = 0;
+                            SongSelection.CycleDifficulty();
                         }
 
                         if (InputMonitor.Monitors[Inputs.Select].State == KeyState.Press
                             || (!disableMouseClick && (mouseState.LeftButton == ButtonState.Pressed && prevMouseState.LeftButton != ButtonState.Pressed)))
                         {
-                            if (selectedFolderIndex == -1)
+                            if (SongSelection.Select())
                             {
-                                selectedFolderIndex = currentFolderIndex;
-                                switch (folderParams[selectedFolderIndex].Type)
-                                {
-                                    case SortType.Title:
-                                        songlist = songlist.OrderBy(x => x.Title).ToList();
-                                        break;
-                                    case SortType.Artist:
-                                        songlist = songlist.OrderBy(x => x.Artist).ToList();
-                                        break;
-                                    case SortType.Level:
-                                        selectedLevelIndex = -1;
-                                        break;
-                                    case SortType.Genre:
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                            else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
-                            {
-                                selectedLevelIndex = currentLevelIndex;
-                                songlist = songlist.OrderBy(x => x.Level).ToList();
-                                currentSongIndex = songlist.FindLastIndex(x => x.Level < (selectedLevelIndex + 1)) + 1;
-                            }
-                            else
-                            {
-                                if ((songlist[currentSongIndex].IsMetadataFile && songlist[currentSongIndex].ChildMetadata.FirstOrDefault(x => (int)x.Difficulty == currentSongLevelIndex) == null) ||
-                                    (!songlist[currentSongIndex].IsMetadataFile && (int)songlist[currentSongIndex].Difficulty != currentSongLevelIndex))
-                                    return;
-
                                 enterLoadingScreen = true;
                                 loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                             }
@@ -387,15 +305,7 @@ namespace StyleStar
                             InputMonitor.Monitors[Inputs.Left].State == KeyState.Press ||
                             (!disableMouseClick && (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed)))
                         {
-                            if (selectedFolderIndex != -1 && folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex != -1)
-                            {
-                                selectedLevelIndex = -1;
-                            }
-                            else
-                            {
-                                selectedFolderIndex = -1;
-                                currentSongIndex = 0;
-                            }
+                            SongSelection.GoBack();
                         }
 
                         if (InputMonitor.Monitors[Inputs.Auto].State == KeyState.Press)
@@ -800,157 +710,7 @@ namespace StyleStar
                     // 4. Songs/Folders
                     // 5. UI elements
 
-                    spriteBatch.Begin();
-                    if (songlist.Count > 0)
-                    {
-                        spriteBatch.Draw(Globals.Textures["SsBgLine"], Globals.Origin, songlist[currentSongIndex].ColorAccent.IfNull(ThemeColors.Blue));
-                        if (selectedFolderIndex == -1)
-                        {
-                            spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
-                            for (int i = 0; i < folderParams.Count; i++)
-                            {
-                                var cardOffset = Globals.ItemOrigin + (i - currentFolderIndex) * Globals.ItemOffset;
-
-                                spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
-                                spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
-                                spriteBatch.DrawString(Globals.Font["Franklin"], folderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
-                                spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
-                            }
-
-                            spriteBatch.Draw(Globals.Textures["SsFolderSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
-                        }
-                        else if (folderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
-                        {
-                            spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, Color.White);
-                            for (int i = 0; i < 10; i++)
-                            {
-                                var cardOffset = Globals.ItemOrigin + (i - currentLevelIndex) * Globals.ItemOffset;
-
-                                spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
-                                spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
-                                spriteBatch.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
-                                spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
-                            }
-
-                            spriteBatch.Draw(Globals.Textures["SsGoBack"], Globals.ItemOrigin + new Vector2(-40f, -70f), Color.White);
-                            spriteBatch.Draw(Globals.Textures["SsFolderSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
-                        }
-                        else
-                        {
-                            spriteBatch.Draw(Globals.Textures["SsActive"], Globals.Origin, songlist[currentSongIndex].ColorFore.IfNull(Color.White));
-                            for (int i = 0; i < songlist.Count; i++)
-                            {
-                                var cardOffset = Globals.ItemOrigin + (i - currentSongIndex) * Globals.ItemOffset;
-
-                                spriteBatch.Draw(Globals.Textures["SsItemBg"], cardOffset, songlist[i].ColorBack.IfNull(ThemeColors.GetColor(i)));
-                                spriteBatch.Draw(Globals.Textures["SsAccentStar"], cardOffset, songlist[i].ColorFore.IfNull(ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f)));
-                                spriteBatch.Draw(Globals.Textures["SsAccentAlbum"], cardOffset, songlist[i].ColorFore.IfNull(ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f)));
-                                spriteBatch.Draw(songlist[i].AlbumImage, new Rectangle((int)cardOffset.X + 284, (int)cardOffset.Y + 12, 96, 96), Color.White);
-                                spriteBatch.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
-                                if(songlist[i].TitleImage == null)
-                                {
-                                    titleFont = FontTools.ContainsJP(songlist[i].Title) ? "JP" : "Franklin";
-                                    spriteBatch.DrawString(Globals.Font[titleFont], songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
-                                }
-                                else
-                                {
-                                    spriteBatch.Draw(songlist[i].TitleImage, new Vector2(cardOffset.X + 60, cardOffset.Y + 16), null, Color.White, 0.0f, Vector2.Zero, 2.0f / 3.0f, SpriteEffects.None, 0.0f);
-                                }
-                                if(songlist[i].ArtistImage == null)
-                                {
-                                    artistFont = FontTools.ContainsJP(songlist[i].Artist) ? "JP" : "Franklin";
-                                    spriteBatch.DrawString(Globals.Font[artistFont], songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
-                                }
-                                else
-                                {
-                                    spriteBatch.Draw(songlist[i].ArtistImage, new Vector2(cardOffset.X + 50, cardOffset.Y + 84), null, Color.White, 0.0f, Vector2.Zero, 2.0f / 3.0f, SpriteEffects.None, 0.0f);
-                                }
-                                spriteBatch.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
-                                if (i == currentSongIndex)
-                                {
-                                    int[] difficulties = new int[3];
-                                    int x = 423;
-                                    spriteBatch.Draw(Globals.Textures["SsActiveDifficulty" + currentSongLevelIndex], new Vector2(cardOffset.X + 390, cardOffset.Y + 2), Color.White);
-                                    if (songlist[i].IsMetadataFile)
-                                    {
-                                        foreach (var song in songlist[i].ChildMetadata)
-                                            difficulties[(int)song.Difficulty] = song.Level;
-                                    }
-                                    else
-                                        difficulties[(int)songlist[i].Difficulty] = songlist[i].Level;
-
-                                    switch (currentSongLevelIndex)
-                                    {
-                                        case 0:
-                                            if (difficulties[0] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[0].ToString("D2"), new Rectangle((int)cardOffset.X + x - 4, (int)cardOffset.Y + 17 + (39 * 0), 36, 32), Color.Black);
-                                            if (difficulties[1] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[1].ToString("D2"), new Rectangle((int)cardOffset.X + x, (int)cardOffset.Y + 13 + (39 * 1), 20, 39), Color.Black);
-                                            if (difficulties[2] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[2].ToString("D2"), new Rectangle((int)cardOffset.X + x, (int)cardOffset.Y + 2 + (39 * 2), 20, 39), Color.Black);
-                                            break;
-                                        case 1:
-                                            if (difficulties[0] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[0].ToString("D2"), new Rectangle((int)cardOffset.X + x, (int)cardOffset.Y + 1 + (39 * 0), 20, 39), Color.Black);
-                                            if (difficulties[1] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[1].ToString("D2"), new Rectangle((int)cardOffset.X + x - 4, (int)cardOffset.Y + 7 + (39 * 1), 36, 32), Color.Black);
-                                            if (difficulties[2] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[2].ToString("D2"), new Rectangle((int)cardOffset.X + x, (int)cardOffset.Y + 2 + (39 * 2), 20, 39), Color.Black);
-                                            break;
-                                        case 2:
-                                            if (difficulties[0] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[0].ToString("D2"), new Rectangle((int)cardOffset.X + x, (int)cardOffset.Y + 2 + (39 * 0), 20, 39), Color.Black);
-                                            if (difficulties[1] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[1].ToString("D2"), new Rectangle((int)cardOffset.X + x, (int)cardOffset.Y - 8 + (39 * 1), 20, 39), Color.Black);
-                                            if (difficulties[2] > 0)
-                                                spriteBatch.DrawString(Globals.Font["Franklin"], difficulties[2].ToString("D2"), new Rectangle((int)cardOffset.X + x - 4, (int)cardOffset.Y - 7 + (39 * 2), 36, 32), Color.Black);
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                }
-                                else
-                                {
-                                    spriteBatch.Draw(Globals.Textures["SsDifficultyBg"], cardOffset, Color.White);
-                                    if (songlist[i].IsMetadataFile)
-                                    {
-                                        foreach (var song in songlist[i].ChildMetadata)
-                                        {
-                                            spriteBatch.DrawString(Globals.Font["Franklin"], song.Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)song.Difficulty), 20, 39), Color.Black);
-                                        }
-                                    }
-                                    else
-                                        spriteBatch.DrawString(Globals.Font["Franklin"], songlist[i].Level.ToString("D2"), new Rectangle((int)cardOffset.X + 392, (int)cardOffset.Y + 2 + (39 * (int)songlist[i].Difficulty), 20, 39), Color.Black);
-                                }
-
-                            }
-
-                            spriteBatch.Draw(Globals.Textures["SsGoBack"], Globals.ItemOrigin + new Vector2(-40f, -70f), Color.White);
-                            spriteBatch.Draw(Globals.Textures["SsSongSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
-
-                            // Metadata may not contain BPM info, if it's empty, check the first song
-                            string bpm = "???";
-                            if (songlist[currentSongIndex].BpmIndex.Count > 0)
-                                bpm = songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
-                            else if (songlist[currentSongIndex].IsMetadataFile && songlist[currentSongIndex].BpmIndex.Count == 0 && songlist[currentSongIndex].ChildMetadata.Count > 0)
-                                bpm = songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
-
-                            titleFont = FontTools.ContainsJP(songlist[currentSongIndex].Title) ? "JP" : "Franklin";
-                            artistFont = FontTools.ContainsJP(songlist[currentSongIndex].Artist) ? "JP" : "Franklin";
-
-                            spriteBatch.DrawStringFixedHeight(Globals.Font[titleFont], songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
-                            spriteBatch.DrawStringFixedHeight(Globals.Font[artistFont], songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
-                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 20.0f, Justification.Right | Justification.Bottom);
-                            spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + songlist[currentSongIndex].Designer, new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
-                        }
-
-                        if (Globals.IsAutoModeEnabled)
-                            spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Width - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
-                    }
-                    else
-                        spriteBatch.DrawStringJustify(Globals.Font["RunningStart"], "NO SONGS FOUND", new Vector2(Width / 2, Height / 2), Color.White, 0.5f, Justification.Center | Justification.Middle);
-
-                    spriteBatch.End();
+                    SongSelection.Draw(spriteBatch);
 
                     if (enterLoadingScreen || leavingLoadingScreen)
                         DrawLoadingTransition(gameTime);
@@ -1049,27 +809,7 @@ namespace StyleStar
                     spriteBatch.End();
 
                     // Draw UI elements
-                    spriteBatch.Begin();
-                    spriteBatch.Draw(Globals.Textures["GpLowerBG"], new Vector2(0, 599), Color.Black);
-                    titleFont = FontTools.ContainsJP(currentSongNotes.Metadata.Title) ? "JP" : "Franklin";
-                    artistFont = FontTools.ContainsJP(currentSongNotes.Metadata.Artist) ? "JP" : "Franklin";
-                    float yTopRow = 615f;
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "SCROLL", new Vector2(60, yTopRow), Color.White, 10.0f, Justification.Center);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "ACCURACY", new Vector2(150, yTopRow), Color.White, 10.0f, Justification.Left);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], currentSongNotes.Metadata.Title, new Vector2(1140, yTopRow), Color.White, 40.0f, Justification.Right);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), currentSongNotes.Metadata.Difficulty).ToUpper(), new Vector2(1200, yTopRow), Color.White, 10.0f, Justification.Center);
-
-                    float yBottomRow = 700f;
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), new Vector2(60, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], (currentSongNotes.CurrentScore / currentSongNotes.TotalNotes * 100.0).ToString("000.000"), new Vector2(150, yBottomRow), Color.White, 40.0f, Justification.Left | Justification.Bottom);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font["Franklin"], "/ 100.000%", new Vector2(395, yBottomRow), Color.White, 20.0f, Justification.Left | Justification.Bottom);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font[titleFont], currentSongNotes.Metadata.Artist, new Vector2(1140, yBottomRow), Color.White, 30.0f, Justification.Right | Justification.Bottom);
-                    spriteBatch.DrawStringFixedHeight(Globals.Font[artistFont], currentSongNotes.Metadata.Level.ToString("D2"), new Vector2(1200, yBottomRow), Color.White, 50.0f, Justification.Center | Justification.Bottom);
-
-                    if (Globals.IsAutoModeEnabled)
-                        spriteBatch.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Width - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
-
-                    spriteBatch.End();
+                    UIScreen.Draw(spriteBatch, currentSongNotes);
 
                     // Draw hit stats
                     if (true)
