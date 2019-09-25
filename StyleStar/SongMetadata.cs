@@ -155,6 +155,25 @@ namespace StyleStar
             }
         }
 
+        public int GetLevel(int difficulty)
+        {
+            if (ChildMetadata.Count > 0)
+            {
+                var meta = ChildMetadata.Find(x => (int)x.Difficulty == difficulty);
+                if (meta == null)
+                    return 0;
+                else
+                    return meta.Level;
+            }
+            else
+            {
+                if ((int)Difficulty == difficulty)
+                    return Level;
+                else
+                    return 0;
+            }
+        }
+
         public string GetPropertyFromChild(string propertyName, int index)
         {
             string ret = "";

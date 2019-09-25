@@ -59,6 +59,13 @@ namespace StyleStar
                 y2 -= Globals.ShuffleNoteHeightOffset;
             if (parent.Type == NoteType.Shuffle)
                 y1 -= Globals.ShuffleNoteHeightOffset;
+            if (parent.Type == NoteType.Slide)
+            {
+                y1 -= Globals.StepNoteHeightOffset;
+                y2 -= Globals.StepNoteHeightOffset;
+            }
+            if (parent.Type == NoteType.Hold)
+                y2 -= Globals.StepNoteHeightOffset;
 
             var topNote = parent.Type == NoteType.Hold || parent.Type == NoteType.Shuffle ? prevNote : parent;
 

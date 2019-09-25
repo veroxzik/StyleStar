@@ -265,8 +265,10 @@ namespace StyleStar
             else if (FolderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
             {
                 selectedLevelIndex = currentLevelIndex;
-                Songlist = Songlist.OrderBy(x => x.Level).ToList();
-                currentSongIndex = Songlist.FindLastIndex(x => x.Level < (selectedLevelIndex + 1)) + 1;
+                Songlist = Songlist.OrderBy(x => x.GetLevel(currentSongLevelIndex)).ToList();
+                currentSongIndex = Songlist.FindLastIndex(x => x.GetLevel(currentSongLevelIndex) < (selectedLevelIndex + 1)) + 1;
+                if (currentSongIndex >= Songlist.Count)
+                    currentSongIndex--;
             }
             else
             {
@@ -285,6 +287,17 @@ namespace StyleStar
             currentSongLevelIndex++;
             if (currentSongLevelIndex > 2)
                 currentSongLevelIndex = 0;
+
+            if (FolderParams[selectedFolderIndex].Type == SortType.Level)
+            {
+                // Find out which song that's currently selected before reorganization
+                var title = Songlist[currentSongIndex].Title;
+                var artist = Songlist[currentSongIndex].Artist;
+
+                // Reorganize list here
+                Songlist = Songlist.OrderBy(x => x.GetLevel(currentSongLevelIndex)).ToList();
+                currentSongIndex = Songlist.IndexOf(Songlist.First(x => x.Title == title && x.Artist == artist));
+            }
         }
 
         public static SongMetadata GetCurrentSongMeta(bool getChild = true)
