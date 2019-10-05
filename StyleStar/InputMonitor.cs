@@ -41,6 +41,16 @@ namespace StyleStar
                     Monitors[input].Key = newKey;
             }
         }
+
+        public static Dictionary<string, object> GetConfig()
+        {
+            var output = new Dictionary<string, object>();
+            foreach (var monitor in Monitors)
+            {
+                output.Add(Enum.GetName(typeof(Inputs), monitor.Key), (int)monitor.Value.Key);
+            }
+            return output;
+        }
     }
 
     public class KeyMonitor

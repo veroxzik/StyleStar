@@ -69,7 +69,6 @@ namespace StyleStar
         // Font Info
         private const int fontBitmapWidth = 8192;
         private const int fontBitmapHeight = 8192;
-        private SpriteFont fontRunningStart;
 
         // Hit Debug
         double hitBeat = 0;
@@ -103,11 +102,19 @@ namespace StyleStar
             {
                 var configTable = Toml.ReadFile(Defines.ConfigFile).ToDictionary();
 
-                if (configTable.ContainsKey("KeyConfig"))
-                {
-                    InputMonitor.SetKeys((Dictionary<string, object>)configTable["KeyConfig"]);
-                }
+                if (configTable.ContainsKey(Defines.KeyConfig))
+                    InputMonitor.SetKeys((Dictionary<string, object>)configTable[Defines.KeyConfig]);
+                if(configTable.ContainsKey(Defines.TouchConfig))
+                    TouchSettings.SetConfig((Dictionary<string, object>)configTable[Defines.TouchConfig]);
             }
+
+            // Save config file (regardless of if there was one already)
+            var data = new Dictionary<string, object>()
+            {
+                {Defines.KeyConfig, InputMonitor.GetConfig() },
+                {Defines.TouchConfig, TouchSettings.GetConfig() }
+            };
+            Toml.WriteFile(data, Defines.ConfigFile);
         }
 
         /// <summary>
@@ -233,11 +240,9 @@ namespace StyleStar
                     }
                     else
                     { 
-                        touchCollection.Points[(uint)pt.Id] = new TouchPoint(currentBeat)
+                        touchCollection.Points[(uint)pt.Id] = new TouchPoint(currentBeat, (int)pt.Position.X, (int)pt.Position.Y)
                         {
                             ID = (uint)pt.Id,
-                            RawX = (int)pt.Position.X,
-                            RawY = (int)pt.Position.Y,
                             RawWidth = 128,
                             RawHeight = 20
                         };
@@ -448,7 +453,7 @@ namespace StyleStar
                                 if (stepList.Count > 0)
                                     closestNoteBeat = stepList.First().BeatLocation;
                                 uint id = (uint)random.Next(0, int.MaxValue);
-                                if (touchCollection.Points.TryAdd(id, new TouchPoint(currentBeat) { RawX = (int)(1024 / 8 * (i + 0.5)), RawY = 500, RawWidth = 128, RawHeight = 20, ID = id })) ;
+                                if (touchCollection.Points.TryAdd(id, new TouchPoint(currentBeat, (int)(1024 / 8 * (i + 0.5)), 500) { RawWidth = 128, RawHeight = 20, ID = id })) ;
                                 KeyDictionary.Add(touchkeys[i], id);
 
                                 motionCollection.JumpBeat = double.NaN;

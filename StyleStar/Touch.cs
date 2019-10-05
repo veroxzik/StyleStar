@@ -9,6 +9,72 @@ using System.Threading.Tasks;
 
 namespace StyleStar
 {
+    public static class TouchSettings
+    {
+        public static Axis WidthAxis { get; set; } = Axis.PosX;
+        public static int CalMinX { get; set; } = 0;
+        public static int CalMaxX { get; set; } = 1280;
+        public static int AbsX { get; set; } = 1024;
+        public static int CalMinY { get; set; } = 0;
+        public static int CalMaxY { get; set; } = 720;
+        public static int AbsY { get; set; } = 1024;
+
+        public static void SetConfig(Dictionary<string, object> config)
+        {
+            foreach (var entry in config)
+            {
+                switch (entry.Key)
+                {
+                    case "WidthAxis":
+                        WidthAxis = (Axis)Convert.ToInt32(entry.Value);
+                        break;
+                    case "CalMinX":
+                        CalMinX = Convert.ToInt32(entry.Value);
+                        break;
+                    case "CalMaxX":
+                        CalMaxX = Convert.ToInt32(entry.Value);
+                        break;
+                    case "AbsX":
+                        AbsX = Convert.ToInt32(entry.Value);
+                        break;
+                    case "CalMinY":
+                        CalMinY = Convert.ToInt32(entry.Value);
+                        break;
+                    case "CalMaxY":
+                        CalMaxY = Convert.ToInt32(entry.Value);
+                        break;
+                    case "AbsY":
+                        AbsY = Convert.ToInt32(entry.Value);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        public static Dictionary<string, object> GetConfig()
+        {
+            return new Dictionary<string, object>()
+            {
+                {"WidthAxis", (int)WidthAxis },
+                {"CalMinX", CalMinX },
+                {"CalMaxX", CalMaxX },
+                {"AbsX", AbsX },
+                {"CalMinY", CalMinY },
+                {"CalMaxY", CalMaxY },
+                {"AbsY", AbsY }
+            };
+        }
+
+        public enum Axis
+        {
+            PosX,
+            PosY,
+            NegX,
+            NegY
+        }
+    }
+
     public class TouchCollection
     {
         public ConcurrentDictionary<uint, TouchPoint> Points = new ConcurrentDictionary<uint, TouchPoint>();
@@ -77,14 +143,14 @@ namespace StyleStar
 
     public class TouchPoint
     {
-        public int RawX { get; set; }  // Absolute value from the controller (0-1023)
-        public int RawY { get; set; } // Absolute value from the controller (0-1023)
+        public int RawX { get; set; }  // Scaled value after calibration (0 to TouchSettings.AbsX)
+        public int RawY { get; set; } // Scaled value after calibration (0 to TouchSettings.AbsX)
         public int VelX { get; private set; }
         public int VelY { get; private set; }
-        public float X { get { return RawX * Globals.GradeZoneWidth / 1023 - Globals.GradeZoneWidth / 2; } }
+        public float X { get { return RawX * Globals.GradeZoneWidth / TouchSettings.AbsX - Globals.GradeZoneWidth / 2; } }
         public int RawWidth { get; set; } // 0-1023
         public int RawHeight { get; set; } // 0-1023
-        public float Width { get { return RawWidth * Globals.GradeZoneWidth / 1023; } }
+        public float Width { get { return RawWidth * Globals.GradeZoneWidth / TouchSettings.AbsX; } }
         public float MinX { get { return X - Width / 2; } }
         public float MaxX { get { return X + Width / 2; } }
         public double Beat { get; private set; }
@@ -95,29 +161,60 @@ namespace StyleStar
         private QuadTexture footTexture;
         private QuadTexture laneTexture;
 
-        public TouchPoint(double beat)
+        public TouchPoint(double beat, int rawX, int rawY)
         {
             Beat = beat;
+            var xy = ConvertXY(rawX, rawY);
+            RawX = xy.Item1;
+            RawY = xy.Item2;
             Valid = true;
         }
 
         public void Reset(double beat, int rawX, int rawY, int rawWidth, int rawHeight)
         {
             Beat = beat;
-            RawX = rawX;
-            RawY = rawY;
+            var xy = ConvertXY(rawX, rawY);
+            RawX = xy.Item1;
+            RawY = xy.Item2;
             RawWidth = rawWidth;
             RawHeight = rawHeight;
         }
 
-
         public void Update(double beat, int x, int y)
         {
             UpdateBeat = beat;
-            VelX = x - RawX;
-            VelY = y - RawY;
-            RawX = x;
-            RawY = y;
+            var xy = ConvertXY(x, y);
+            VelX = xy.Item1 - RawX;
+            VelY = xy.Item2 - RawY;
+            RawX = xy.Item1;
+            RawY = xy.Item2;
+        }
+
+        private Tuple<int, int> ConvertXY(int rawX, int rawY)
+        {
+            int x = -1, y = -1;
+            switch (TouchSettings.WidthAxis)
+            {
+                case TouchSettings.Axis.PosX:
+                    x = (int)((float)(rawX - TouchSettings.CalMinX) / (float)(TouchSettings.CalMaxX - TouchSettings.CalMinX) * (float)TouchSettings.AbsX);
+                    y = (int)((float)(rawY - TouchSettings.CalMinY) / (float)(TouchSettings.CalMaxY - TouchSettings.CalMinY) * (float)TouchSettings.AbsY);
+                    break;
+                case TouchSettings.Axis.PosY:
+                    x = (int)((float)(rawY - TouchSettings.CalMinY) / (float)(TouchSettings.CalMaxY - TouchSettings.CalMinY) * (float)TouchSettings.AbsX);
+                    y = TouchSettings.AbsX - (int)((float)(rawX - TouchSettings.CalMinX) / (float)(TouchSettings.CalMaxX - TouchSettings.CalMinX) * (float)TouchSettings.AbsY);
+                    break;
+                case TouchSettings.Axis.NegX:
+                    x = TouchSettings.AbsY - (int)((float)(rawY - TouchSettings.CalMinY) / (float)(TouchSettings.CalMaxY - TouchSettings.CalMinY) * (float)TouchSettings.AbsX);
+                    y = TouchSettings.AbsX - (int)((float)(rawX - TouchSettings.CalMinX) / (float)(TouchSettings.CalMaxX - TouchSettings.CalMinX) * (float)TouchSettings.AbsY);
+                    break;
+                case TouchSettings.Axis.NegY:
+                    x = TouchSettings.AbsY - (int)((float)(rawY - TouchSettings.CalMinY) / (float)(TouchSettings.CalMaxY - TouchSettings.CalMinY) * (float)TouchSettings.AbsX);
+                    y = (int)((float)(rawX - TouchSettings.CalMinX) / (float)(TouchSettings.CalMaxX - TouchSettings.CalMinX) * (float)TouchSettings.AbsY);
+                    break;
+                default:
+                    break;
+            }
+            return new Tuple<int, int>(x, y);
         }
 
         public void Draw(Matrix view, Matrix projection)
@@ -128,7 +225,7 @@ namespace StyleStar
             laneTexture.Draw(view, projection);
 
             if (footTexture == null)
-                footTexture = new QuadTexture(RawX <= 1024 / 2 ? Globals.Textures["FootLeft"] : Globals.Textures["FootRight"]);
+                footTexture = new QuadTexture(RawX <= TouchSettings.AbsX / 2 ? Globals.Textures["FootLeft"] : Globals.Textures["FootRight"]);
             footTexture.SetVerts(X + Globals.FootWidth / 2, X - Globals.FootWidth / 2, -(float)Globals.StepNoteHeightOffset, (float)Globals.StepNoteHeightOffset, -0.05f);
 
             footTexture.Draw(view, projection);
