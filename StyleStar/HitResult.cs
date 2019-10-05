@@ -36,6 +36,9 @@ namespace StyleStar
         public static readonly double BeatTolerance = 0.05; // This is the window that hold note beats will count
 
         public static readonly double AutoTolerance = 0.01;
+
+        public static readonly float Shuffle = 1 / 60.0f * 8;
+        public static readonly int ShuffleVelocityThreshold = 20; 
     }
 
     public static class MotionTiming

@@ -18,6 +18,55 @@ namespace StyleStar
         private static int selectedLevelIndex = -1;
         private static int currentSongLevelIndex = 0;  // Used to track difficulty switches
 
+        private static Dictionary<object, Label> labels = new Dictionary<object, Label>();
+
+        public static void GenerateLabels()
+        {
+            // Folder Parameters
+            for (int i = 0; i < FolderParams.Count; i++)
+            {
+                labels.Add(FolderParams[i], new Label(Globals.Font["Franklin"], FolderParams[i].Name, new Rectangle(0, 0, 223, 88), Color.White));
+            }
+            // Level Labels
+            for (int i = 0; i < 10; i++)
+            {
+                labels.Add("LEVEL" + (i + 1), new Label(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle(0, 0, 225, 88), Color.White));
+            }
+
+            // Song Metadata
+            foreach (var song in Songlist)
+            {
+                var titleFont = FontTools.ContainsJP(song.Title) ? "JP" : "Franklin";
+                labels.Add(song.SongID + "-TITLE", new Label(Globals.Font[titleFont], song.Title, new Rectangle(0, 0, 200, 38), Color.White));
+
+                var artistFont = FontTools.ContainsJP(song.Artist) ? "JP" : "Franklin";
+                labels.Add(song.SongID + "-ARTIST", new Label(Globals.Font[artistFont], song.Artist, new Rectangle(0, 0, 160, 36), Color.White));
+                
+            }
+
+
+            labels.Add("AUTO", new Label(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Globals.WindowSize.X - 10, 10), Color.White, Justification.Top | Justification.Right, LabelType.Default, 0.15f));
+            labels.Add("NO-SONGS", new Label(Globals.Font["Franklin"], "NO SONGS FOUND", new Vector2(Globals.WindowSize.X / 2, Globals.WindowSize.Y / 2), Color.White, Justification.Center | Justification.Middle, LabelType.Default, 0.5f));
+        }
+
+        public static void UpdateMetaLabels()
+        {
+            // Update Selected Song Metadata
+            string bpm = "???";
+            if (Songlist[currentSongIndex].BpmIndex.Count > 0)
+                bpm = Songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
+            else if (Songlist[currentSongIndex].IsMetadataFile && Songlist[currentSongIndex].BpmIndex.Count == 0 && Songlist[currentSongIndex].ChildMetadata.Count > 0)
+                bpm = Songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
+
+            var titleFont = FontTools.ContainsJP(Songlist[currentSongIndex].Title) ? "JP" : "Franklin";
+            var artistFont = FontTools.ContainsJP(Songlist[currentSongIndex].Artist) ? "JP" : "Franklin";
+
+            labels["META-TITLE"] = new Label(Globals.Font[titleFont], Songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, Justification.Bottom | Justification.Right, LabelType.FixedHeight, 40.0f);
+            labels["META-ARTIST"] = new Label(Globals.Font[titleFont], Songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, Justification.Bottom | Justification.Right, LabelType.FixedHeight, 30.0f);
+            labels["META-BPM"] = new Label(Globals.Font[titleFont], bpm + " BPM", new Vector2(1220, 640), Color.White, Justification.Bottom | Justification.Right, LabelType.FixedHeight, 20.0f);
+            labels["META-CHOREO"] = new Label(Globals.Font[titleFont], "Choreo: " + Songlist[currentSongIndex].GetPropertyFromChild("Designer", currentSongLevelIndex), new Vector2(1220, 670), Color.White, Justification.Bottom | Justification.Right, LabelType.FixedHeight, 20.0f);
+        }
+
         public static void ImportSongs(string songsFolder)
         {
             DirectoryInfo di = new DirectoryInfo("Songs");
@@ -67,7 +116,9 @@ namespace StyleStar
 
                         sb.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
                         sb.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
-                        sb.DrawString(Globals.Font["Franklin"], FolderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
+                        labels[FolderParams[i]].UpdateLoction(cardOffset.X + 120, cardOffset.Y + 16);
+                        labels[FolderParams[i]].Draw(sb);
+                        //sb.DrawString(Globals.Font["Franklin"], FolderParams[i].Name, new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
                         sb.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                     }
 
@@ -82,7 +133,9 @@ namespace StyleStar
 
                         sb.Draw(Globals.Textures["SsItemBg"], cardOffset, ThemeColors.GetColor(i));
                         sb.Draw(Globals.Textures["SsAccentStar"], cardOffset, ThemeColors.GetColor(i).LerpBlackAlpha(0.3f, 0.1f));
-                        sb.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
+                        labels["LEVEL" + (i + 1)].UpdateLoction(cardOffset.X + 120, cardOffset.Y + 16);
+                        labels["LEVEL" + (i + 1)].Draw(sb);
+                        //sb.DrawString(Globals.Font["Franklin"], "LEVEL" + (i + 1), new Rectangle((int)cardOffset.X + 120, (int)cardOffset.Y + 16, 225, 88), Color.White);
                         sb.Draw(Globals.Textures["SsFrame"], cardOffset, Color.White);
                     }
 
@@ -103,8 +156,10 @@ namespace StyleStar
                         sb.Draw(Globals.Textures["SsAlbumFrame"], cardOffset, Color.White);
                         if (Songlist[i].TitleImage == null)
                         {
-                            titleFont = FontTools.ContainsJP(Songlist[i].Title) ? "JP" : "Franklin";
-                            sb.DrawString(Globals.Font[titleFont], Songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
+                            labels[Songlist[i].SongID + "-TITLE"].UpdateLoction(cardOffset.X + 70, cardOffset.Y + 16);
+                            labels[Songlist[i].SongID + "-TITLE"].Draw(sb);
+                            //titleFont = FontTools.ContainsJP(Songlist[i].Title) ? "JP" : "Franklin";
+                            //sb.DrawString(Globals.Font[titleFont], Songlist[i].Title, new Rectangle((int)cardOffset.X + 70, (int)cardOffset.Y + 16, 200, 38), Color.White);
                         }
                         else
                         {
@@ -112,8 +167,10 @@ namespace StyleStar
                         }
                         if (Songlist[i].ArtistImage == null)
                         {
-                            artistFont = FontTools.ContainsJP(Songlist[i].Artist) ? "JP" : "Franklin";
-                            sb.DrawString(Globals.Font[artistFont], Songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
+                            labels[Songlist[i].SongID + "-ARTIST"].UpdateLoction(cardOffset.X + 108, cardOffset.Y + 62);
+                            labels[Songlist[i].SongID + "-ARTIST"].Draw(sb);
+                            //artistFont = FontTools.ContainsJP(Songlist[i].Artist) ? "JP" : "Franklin";
+                            //sb.DrawString(Globals.Font[artistFont], Songlist[i].Artist, new Rectangle((int)cardOffset.X + 108, (int)cardOffset.Y + 62, 160, 36), Color.White);
                         }
                         else
                         {
@@ -180,29 +237,37 @@ namespace StyleStar
                     }
 
                     sb.Draw(Globals.Textures["SsGoBack"], Globals.ItemOrigin + new Vector2(-40f, -70f), Color.White);
-                    sb.Draw(Globals.Textures["SsSongSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
+                    if (IsSongReady())
+                        sb.Draw(Globals.Textures["SsSongSelect"], Globals.ItemOrigin + new Vector2(480f, 28f), Color.White);
 
-                    // Metadata may not contain BPM info, if it's empty, check the first song
-                    string bpm = "???";
-                    if (Songlist[currentSongIndex].BpmIndex.Count > 0)
-                        bpm = Songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
-                    else if (Songlist[currentSongIndex].IsMetadataFile && Songlist[currentSongIndex].BpmIndex.Count == 0 && Songlist[currentSongIndex].ChildMetadata.Count > 0)
-                        bpm = Songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
+                    labels["META-TITLE"].Draw(sb);
+                    labels["META-ARTIST"].Draw(sb);
+                    labels["META-BPM"].Draw(sb);
+                    labels["META-CHOREO"].Draw(sb);
 
-                    titleFont = FontTools.ContainsJP(Songlist[currentSongIndex].Title) ? "JP" : "Franklin";
-                    artistFont = FontTools.ContainsJP(Songlist[currentSongIndex].Artist) ? "JP" : "Franklin";
+                    //// Metadata may not contain BPM info, if it's empty, check the first song
+                    //string bpm = "???";
+                    //if (Songlist[currentSongIndex].BpmIndex.Count > 0)
+                    //    bpm = Songlist[currentSongIndex].BpmIndex.First().Value.ToString("F0");
+                    //else if (Songlist[currentSongIndex].IsMetadataFile && Songlist[currentSongIndex].BpmIndex.Count == 0 && Songlist[currentSongIndex].ChildMetadata.Count > 0)
+                    //    bpm = Songlist[currentSongIndex].ChildMetadata.First().BpmIndex.First().Value.ToString("F0");
 
-                    sb.DrawStringFixedHeight(Globals.Font[titleFont], Songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
-                    sb.DrawStringFixedHeight(Globals.Font[artistFont], Songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
-                    sb.DrawStringFixedHeight(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 20.0f, Justification.Right | Justification.Bottom);
-                    sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + Songlist[currentSongIndex].GetPropertyFromChild("Designer", currentSongLevelIndex), new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
+                    //titleFont = FontTools.ContainsJP(Songlist[currentSongIndex].Title) ? "JP" : "Franklin";
+                    //artistFont = FontTools.ContainsJP(Songlist[currentSongIndex].Artist) ? "JP" : "Franklin";
+
+                    //sb.DrawStringFixedHeight(Globals.Font[titleFont], Songlist[currentSongIndex].Title, new Vector2(1220, 570), Color.White, 40.0f, Justification.Bottom | Justification.Right);
+                    //sb.DrawStringFixedHeight(Globals.Font[artistFont], Songlist[currentSongIndex].Artist, new Vector2(1220, 610), Color.White, 30.0f, Justification.Bottom | Justification.Right);
+                    //sb.DrawStringFixedHeight(Globals.Font["Franklin"], bpm + " BPM", new Vector2(1220, 640), Color.White, 20.0f, Justification.Right | Justification.Bottom);
+                    //sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + Songlist[currentSongIndex].GetPropertyFromChild("Designer", currentSongLevelIndex), new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
                 }
 
                 if (Globals.IsAutoModeEnabled)
-                    sb.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Globals.WindowSize.X - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
+                    labels["AUTO"].Draw(sb);
+                //sb.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Globals.WindowSize.X - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
             }
             else
-                sb.DrawStringJustify(Globals.Font["RunningStart"], "NO SONGS FOUND", new Vector2(Globals.WindowSize.X / 2, Globals.WindowSize.Y / 2), Color.White, 0.5f, Justification.Center | Justification.Middle);
+                labels["NO-SONGS"].Draw(sb);
+                //sb.DrawStringJustify(Globals.Font["RunningStart"], "NO SONGS FOUND", new Vector2(Globals.WindowSize.X / 2, Globals.WindowSize.Y / 2), Color.White, 0.5f, Justification.Center | Justification.Middle);
 
             sb.End();
         }
@@ -214,7 +279,10 @@ namespace StyleStar
             else if (FolderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
                 currentLevelIndex = currentLevelIndex < 9 ? ++currentLevelIndex : 9;
             else
+            {
                 currentSongIndex = currentSongIndex < (Songlist.Count - 1) ? ++currentSongIndex : Songlist.Count - 1;
+                UpdateMetaLabels();
+            }
         }
 
         public static void ScrollUp()
@@ -224,7 +292,10 @@ namespace StyleStar
             else if (FolderParams[selectedFolderIndex].Type == SortType.Level && selectedLevelIndex == -1)
                 currentLevelIndex = currentLevelIndex > 0 ? --currentLevelIndex : 0;
             else
+            {
                 currentSongIndex = currentSongIndex > 0 ? --currentSongIndex : 0;
+                UpdateMetaLabels();
+            }
         }
 
         public static void GoBack()
@@ -249,9 +320,11 @@ namespace StyleStar
                 {
                     case SortType.Title:
                         Songlist = Songlist.OrderBy(x => x.Title).ToList();
+                        UpdateMetaLabels();
                         break;
                     case SortType.Artist:
                         Songlist = Songlist.OrderBy(x => x.Artist).ToList();
+                        UpdateMetaLabels();
                         break;
                     case SortType.Level:
                         selectedLevelIndex = -1;
@@ -267,13 +340,13 @@ namespace StyleStar
                 selectedLevelIndex = currentLevelIndex;
                 Songlist = Songlist.OrderBy(x => x.GetLevel(currentSongLevelIndex)).ToList();
                 currentSongIndex = Songlist.FindLastIndex(x => x.GetLevel(currentSongLevelIndex) < (selectedLevelIndex + 1)) + 1;
+                UpdateMetaLabels();
                 if (currentSongIndex >= Songlist.Count)
                     currentSongIndex--;
             }
             else
             {
-                if ((Songlist[currentSongIndex].IsMetadataFile && Songlist[currentSongIndex].ChildMetadata.FirstOrDefault(x => (int)x.Difficulty == currentSongLevelIndex) == null) ||
-                    (!Songlist[currentSongIndex].IsMetadataFile && (int)Songlist[currentSongIndex].Difficulty != currentSongLevelIndex))
+                if (!IsSongReady())
                     return false;
 
                 return true;
@@ -284,6 +357,9 @@ namespace StyleStar
 
         public static void CycleDifficulty()
         {
+            if (selectedFolderIndex < 0)
+                return;
+
             currentSongLevelIndex++;
             if (currentSongLevelIndex > 2)
                 currentSongLevelIndex = 0;
@@ -302,10 +378,19 @@ namespace StyleStar
 
         public static SongMetadata GetCurrentSongMeta(bool getChild = true)
         {
-            if(getChild)
+            if (getChild)
                 return Songlist[currentSongIndex].IsMetadataFile ? Songlist[currentSongIndex].ChildMetadata.FirstOrDefault(x => (int)x.Difficulty == currentSongLevelIndex) : Songlist[currentSongIndex];
             else
                 return Songlist[currentSongIndex];
+        }
+
+        private static bool IsSongReady()
+        {
+            if ((Songlist[currentSongIndex].IsMetadataFile && Songlist[currentSongIndex].ChildMetadata.FirstOrDefault(x => (int)x.Difficulty == currentSongLevelIndex) == null) ||
+                    (!Songlist[currentSongIndex].IsMetadataFile && (int)Songlist[currentSongIndex].Difficulty != currentSongLevelIndex))
+                return false;
+
+            return true;
         }
     }
 

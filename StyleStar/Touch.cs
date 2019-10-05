@@ -41,21 +41,36 @@ namespace StyleStar
             var noteMin = Globals.CalcTransX(note, Side.Left);
             var noteMax = Globals.CalcTransX(note, Side.Right);
 
-            var validPoints = Points.Where(x => x.Value.MinX < noteMax && x.Value.MaxX > noteMin).ToList();
-            if (validPoints.Count == 0)
-                return false;   // No need to modify hit result-- defaults to false
+            float diffMS = float.MaxValue;
+            if (note.Type != NoteType.Shuffle)
+            {
+                var validPoints = Points.Where(x => x.Value.Valid && x.Value.MinX < noteMax && x.Value.MaxX > noteMin).ToList();
+                if (validPoints.Count == 0)
+                    return false;   // No need to modify hit result-- defaults to false
 
-            validPoints.Sort((x, y) => Math.Abs(x.Value.Beat - note.BeatLocation).CompareTo(Math.Abs(y.Value.Beat - note.BeatLocation)));
+                validPoints.Sort((x, y) => Math.Abs(x.Value.Beat - note.BeatLocation).CompareTo(Math.Abs(y.Value.Beat - note.BeatLocation)));
 
-            // Use the closest point and get the time difference
-            //float diffMS = (float)(((note.BeatLocation - validPoints.First().Beat) * 60 / Globals.CurrentBpm));
-            float diffMS = (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(validPoints.First().Value.Beat));
-            if (diffMS > NoteTiming.Bad) // Too soon to hit, just leave
-                return false;
-    
-            // All other times are valid
-            note.HitResult.WasHit = true;
-            note.HitResult.Difference = diffMS;
+                // Use the closest point and get the time difference
+                //float diffMS = (float)(((note.BeatLocation - validPoints.First().Beat) * 60 / Globals.CurrentBpm));
+                diffMS = (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(validPoints.First().Value.Beat));
+                if (diffMS > NoteTiming.Bad) // Too soon to hit, just leave
+                    return false;
+
+                // All other times are valid
+                note.HitResult.WasHit = true;
+                note.HitResult.Difference = diffMS;
+            }
+            else
+            {
+                var validPoints = Points.Where(x => x.Value.Valid && (float)(Globals.GetSecAtBeat(note.BeatLocation) - Globals.GetSecAtBeat(x.Value.UpdateBeat)) < NoteTiming.Shuffle && x.Value.VelX >= NoteTiming.ShuffleVelocityThreshold).ToList();
+                if (validPoints.Count == 0)
+                    return false;   // No need to modify hit result-- defaults to false
+
+                // If any points exist, then we're fine
+                note.HitResult.WasHit = true;
+                note.HitResult.Difference = diffMS;
+            }
+
             return true;
         }
     }
@@ -64,6 +79,8 @@ namespace StyleStar
     {
         public int RawX { get; set; }  // Absolute value from the controller (0-1023)
         public int RawY { get; set; } // Absolute value from the controller (0-1023)
+        public int VelX { get; private set; }
+        public int VelY { get; private set; }
         public float X { get { return RawX * Globals.GradeZoneWidth / 1023 - Globals.GradeZoneWidth / 2; } }
         public int RawWidth { get; set; } // 0-1023
         public int RawHeight { get; set; } // 0-1023
@@ -71,7 +88,9 @@ namespace StyleStar
         public float MinX { get { return X - Width / 2; } }
         public float MaxX { get { return X + Width / 2; } }
         public double Beat { get; private set; }
+        public double UpdateBeat { get; private set; }
         public uint ID { get; set; } // 32bit ID (from Windows Message, etc.)
+        public bool Valid { get; set; }
 
         private QuadTexture footTexture;
         private QuadTexture laneTexture;
@@ -79,6 +98,26 @@ namespace StyleStar
         public TouchPoint(double beat)
         {
             Beat = beat;
+            Valid = true;
+        }
+
+        public void Reset(double beat, int rawX, int rawY, int rawWidth, int rawHeight)
+        {
+            Beat = beat;
+            RawX = rawX;
+            RawY = rawY;
+            RawWidth = rawWidth;
+            RawHeight = rawHeight;
+        }
+
+
+        public void Update(double beat, int x, int y)
+        {
+            UpdateBeat = beat;
+            VelX = x - RawX;
+            VelY = y - RawY;
+            RawX = x;
+            RawY = y;
         }
 
         public void Draw(Matrix view, Matrix projection)

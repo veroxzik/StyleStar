@@ -34,6 +34,8 @@ namespace StyleStar
         public Color ColorBack { get; set; }
         public Color ColorAccent { get; set; }
 
+        public string SongID { get; set; }  // This is used internally for tracking the song
+
         public SongMetadata() { }
 
         public SongMetadata(string fileName)
@@ -96,6 +98,8 @@ namespace StyleStar
                             ColorBack = Util.ParseFromHex(parse);
                         if (StringExtensions.TrySearchTag(line, "COLORACCENT", out parse))
                             ColorAccent = Util.ParseFromHex(parse);
+                        if (StringExtensions.TrySearchTag(line, "SONGID", out parse))
+                            SongID = parse;
 
                         if (Regex.IsMatch(line, "(#BPM)"))
                         {
@@ -148,6 +152,8 @@ namespace StyleStar
                         }
                     }
                 }
+                if (String.IsNullOrEmpty(SongID))
+                    SongID = Title + "_" + Artist + "_" + Level.ToString();
             }
             catch (Exception e)
             {

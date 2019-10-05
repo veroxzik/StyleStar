@@ -28,7 +28,8 @@ namespace StyleStar
                     CharacterRange.Latin1Supplement,
                     CharacterRange.LatinExtendedA,
                     CharacterRange.LatinExtendedB,
-                    CharacterRange.Greek
+                    CharacterRange.Greek,
+                    LatinSymbols
                 });
             }
             else if (fontRange == FontRange.Japanese)
@@ -36,6 +37,12 @@ namespace StyleStar
                 fontBaker.Add(File.ReadAllBytes(path), fontHeight, new[]
                 {
                     CharacterRange.BasicLatin,
+                    CharacterRange.Latin1Supplement,
+                    CharacterRange.LatinExtendedA,
+                    CharacterRange.LatinExtendedB,
+                    CharacterRange.Greek,
+                    LatinSymbols,
+                    ExtendedSymbols,
                     CharacterRange.Hiragana,
                     CharacterRange.Katakana,
                     CharacterRange.CjkSymbolsAndPunctuation,
@@ -113,6 +120,9 @@ namespace StyleStar
             Latin,
             Japanese
         }
+
+        public static CharacterRange LatinSymbols = new CharacterRange(0x2013, 0x25CA);
+        public static CharacterRange ExtendedSymbols = new CharacterRange(0x25CB, 0x27E9);
     }
 
     public static class FontTools
@@ -126,6 +136,8 @@ namespace StyleStar
             if (s.Any(c => c >= CharacterRange.CjkUnifiedIdeographs.Start && c <= CharacterRange.CjkUnifiedIdeographs.End))
                 return true;
             if (s.Any(c => c >= CharacterRange.CjkSymbolsAndPunctuation.Start && c <= CharacterRange.CjkSymbolsAndPunctuation.End))
+                return true;
+            if (s.Any(c => c >= FontLoader.ExtendedSymbols.Start && c <= FontLoader.ExtendedSymbols.End))
                 return true;
 
             return false;

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
 
 namespace StyleStar
 {
@@ -11,37 +12,72 @@ namespace StyleStar
 
         private static Vector2 plotLocation = new Vector2();
 
+        private static List<Label> labels = new List<Label>();
+
+        public static void GenerateLabels(NoteCollection song)
+        {
+            labels.Clear();
+
+            string titleFont = FontTools.ContainsJP(song.Metadata.Title) ? "JP" : "Franklin";
+            string artistFont = FontTools.ContainsJP(song.Metadata.Artist) ? "JP" : "Franklin";
+
+            // Top Row
+            plotLocation.X = 60;
+            plotLocation.Y = TopRowLocation;
+            labels.Add(new Label(Globals.Font["Franklin"], "SCROLL", plotLocation, Color.White, Justification.Center, LabelType.FixedHeight, 10.0f));
+            plotLocation.X = 150;
+            labels.Add(new Label(Globals.Font["Franklin"], "ACCURACY", plotLocation, Color.White, Justification.Left, LabelType.FixedHeight, 10.0f));
+            plotLocation.X = 1140;
+            labels.Add(new Label(Globals.Font[titleFont], song.Metadata.Title, plotLocation, Color.White, Justification.Right, LabelType.FixedHeight, 40.0f));
+            plotLocation.X = 1200;
+            labels.Add(new Label(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), song.Metadata.Difficulty).ToUpper(), plotLocation, Color.White, Justification.Center, LabelType.FixedHeight, 10.0f));
+
+            // Bottom row
+            plotLocation.X = 60;
+            plotLocation.Y = BottomRowLocation;
+            labels.Add(new Label(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), plotLocation, Color.White, Justification.Center | Justification.Bottom, LabelType.FixedHeight, 50.0f));
+            plotLocation.X = 150;
+            labels.Add(new Label(Globals.Font["Franklin"], (song.CurrentScore / song.TotalNotes * 100.0).ToString("000.000"), plotLocation, Color.White, Justification.Left | Justification.Bottom, LabelType.FixedHeight, 40.0f));
+            plotLocation.X = 395;
+            labels.Add(new Label(Globals.Font["Franklin"], "/ 100.000%", plotLocation, Color.White, Justification.Left | Justification.Bottom, LabelType.FixedHeight, 20.0f));
+            plotLocation.X = 1140;
+            labels.Add(new Label(Globals.Font[artistFont], song.Metadata.Artist, plotLocation, Color.White, Justification.Right | Justification.Bottom, LabelType.FixedHeight, 30.0f));
+            plotLocation.X = 1200;
+            labels.Add(new Label(Globals.Font["Franklin"], song.Metadata.Level.ToString("D2"), plotLocation, Color.White, Justification.Center | Justification.Bottom, LabelType.FixedHeight, 50.0f));
+        }
+
+        public static void UpdateSpeed()
+        {
+            labels[4].Text = Globals.SpeedScale.ToString("F1");
+        }
+
         public static void Draw(SpriteBatch sb, NoteCollection song)
         {
             if (song == null)
                 return;
+
+            var log = Globals.DrawTempLog;
 
             sb.Begin();
             sb.Draw(Globals.Textures["GpLowerBG"], new Vector2(0, 599), Color.Black);
             string titleFont = FontTools.ContainsJP(song.Metadata.Title) ? "JP" : "Franklin";
             string artistFont = FontTools.ContainsJP(song.Metadata.Artist) ? "JP" : "Franklin";
 
-            plotLocation.X = 60;
-            plotLocation.Y = TopRowLocation;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "SCROLL", plotLocation, Color.White, 10.0f, Justification.Center);
-            plotLocation.X = 150;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "ACCURACY", plotLocation, Color.White, 10.0f, Justification.Left);
-            plotLocation.X = 1140;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], song.Metadata.Title, plotLocation, Color.White, 40.0f, Justification.Right);
-            plotLocation.X = 1200;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], Enum.GetName(typeof(Difficulty), song.Metadata.Difficulty).ToUpper(), plotLocation, Color.White, 10.0f, Justification.Center);
+            if (Globals.DrawProfiling)
+                log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "UI: BG");
 
-            plotLocation.X = 60;
-            plotLocation.Y = BottomRowLocation;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], Globals.SpeedScale.ToString("F1"), plotLocation, Color.White, 50.0f, Justification.Center | Justification.Bottom);
-            plotLocation.X = 150;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], (song.CurrentScore / song.TotalNotes * 100.0).ToString("000.000"), plotLocation, Color.White, 40.0f, Justification.Left | Justification.Bottom);
-            plotLocation.X = 395;
-            sb.DrawStringFixedHeight(Globals.Font["Franklin"], "/ 100.000%", plotLocation, Color.White, 20.0f, Justification.Left | Justification.Bottom);
-            plotLocation.X = 1140;
-            sb.DrawStringFixedHeight(Globals.Font[titleFont], song.Metadata.Artist, plotLocation, Color.White, 30.0f, Justification.Right | Justification.Bottom);
-            plotLocation.X = 1200;
-            sb.DrawStringFixedHeight(Globals.Font[artistFont], song.Metadata.Level.ToString("D2"), plotLocation, Color.White, 50.0f, Justification.Center | Justification.Bottom);
+            foreach (var label in labels)
+            {
+                label.Draw(sb);
+
+                if (Globals.DrawProfiling)
+                {
+                    if (labels.IndexOf(label) == 3)
+                        log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "UI: Top Row");
+                    if (labels.IndexOf(label) == 8)
+                        log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "UI: Bottom Row");
+                }
+            }
 
             if (Globals.IsAutoModeEnabled)
             {

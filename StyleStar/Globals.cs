@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace StyleStar
@@ -42,6 +43,16 @@ namespace StyleStar
         public static Dictionary<string, SpriteFont> Font { get; set; }
 
         public static bool IsAutoModeEnabled { get; set; } = false;
+
+        // DEBUG STUFF
+        public static bool TouchProfiling = true;
+        public static Stopwatch TouchStopwatch = new Stopwatch();
+        public static List<DrawCycleEventLog> TouchCycleLog = new List<DrawCycleEventLog>();
+
+        public static bool DrawProfiling = true;
+        public static Stopwatch DrawStopwatch = new Stopwatch();
+        public static List<DrawCycleEventLog> DrawCycleLog = new List<DrawCycleEventLog>();
+        public static DrawCycleEventLog DrawTempLog;
 
         public static double CalcTransX(Note note)
         {

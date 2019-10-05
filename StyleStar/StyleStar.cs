@@ -50,11 +50,9 @@ namespace StyleStar
 
         KeyboardState prevKbState;
         MouseState prevMouseState;
-        bool disableMouseClick;
+        bool disableMouseClick = true;  // TODO make this a setting
 
         bool TouchScreenConnected = false;
-
-        TouchWindowsHook touchHookWin;
 
         TouchCollection touchCollection = new TouchCollection();
         MotionCollection motionCollection = new MotionCollection();
@@ -83,25 +81,22 @@ namespace StyleStar
         bool horzMotion = false;
 
         // DEBUG
-        bool enableProfiling = false;
         bool drawFpsCounter = true;
-        Stopwatch stopwatch = new Stopwatch();
-        List<DrawCycleEventLog> DrawCycleLog = new List<DrawCycleEventLog>();
-        List<Tuple<long, string>> timeVals = new List<Tuple<long, string>>();
+
+        bool updateProfiling = true;
+        Stopwatch updateStopwatch = new Stopwatch();
+        List<DrawCycleEventLog> UpdateCycleLog = new List<DrawCycleEventLog>();
 
         public StyleStar()
         {
-            graphics = new GraphicsDeviceManager(this);
+            graphics = new GraphicsDeviceManager(this) { GraphicsProfile = GraphicsProfile.HiDef };
             Content.RootDirectory = "Content";
             Globals.ContentManager = Content;
             Globals.GraphicsManager = graphics;
 
-            this.graphics.SynchronizeWithVerticalRetrace = false;
-            base.IsFixedTimeStep = false;
+            //this.graphics.SynchronizeWithVerticalRetrace = false;
+            //base.IsFixedTimeStep = false;
             //this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
-
-            //m_event = Hook.GlobalEvents();
-            //m_event.TouchMove += M_event_TouchMove;
 
             // Load config file
             if (File.Exists(Defines.ConfigFile))
@@ -113,11 +108,6 @@ namespace StyleStar
                     InputMonitor.SetKeys((Dictionary<string, object>)configTable["KeyConfig"]);
                 }
             }
-        }
-
-        private void M_event_TouchMove(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            Console.WriteLine("TOUCH MOVE!!");
         }
 
         /// <summary>
@@ -149,8 +139,6 @@ namespace StyleStar
                 TouchPanel.EnableMouseTouchPoint = true;
                 TouchPanel.EnabledGestures = GestureType.Tap;
                 TouchPanel.EnableMouseGestures = true;
-
-                touchHookWin = new TouchWindowsHook(touchCollection, musicManager);
             }
 
             base.Initialize();
@@ -186,17 +174,20 @@ namespace StyleStar
 
             debugFont = Content.Load<SpriteFont>("DebugFont");
             Globals.Font = new Dictionary<string, SpriteFont>();
-            //Globals.Font.Add("FranklinMG", Content.Load<SpriteFont>("Fonts/libre-franklin/librefranklin-blackitalic"));
-            //Globals.Font.Add("RunningStartMG", Content.Load<SpriteFont>("Fonts/RunningStart"));
-            //Globals.Font.Add("JPMG", Content.Load<SpriteFont>("Fonts/mplus-1p-heavy"));
-
-            // Load songs
-            SongSelection.ImportSongs("Songs");
 
             // Load fonts dynamically
             Globals.Font.Add("Franklin", FontLoader.LoadFont("Content/Fonts/libre-franklin/librefranklin-blackitalic.ttf", 144));
             Globals.Font.Add("RunningStart", FontLoader.LoadFont("Content/Fonts/RunningStart.ttf", 144));
-            Globals.Font.Add("JP", FontLoader.LoadFont("Content/Fonts/mplus-1p-heavy.ttf", 144, FontLoader.FontRange.Japanese));
+            //Globals.Font.Add("JP", FontLoader.LoadFont("Content/Fonts/mplus-1p-heavy.ttf", 144, FontLoader.FontRange.Japanese));
+            //Globals.Font.Add("Franklin", FontLoader.LoadFont("Content/Fonts/librefranklin-mplus.ttf", 144, FontLoader.FontRange.Japanese));
+            Globals.Font.Add("JP", FontLoader.LoadFont("Content/Fonts/librefranklin-mplus.ttf", 144, FontLoader.FontRange.Japanese));
+
+            // Load songs
+            SongSelection.ImportSongs("Songs");
+
+            // Generate Static Text Labels
+            SongSelection.GenerateLabels();
+            ResultScreen.GenerateLabels();
         }
 
         /// <summary>
@@ -215,13 +206,65 @@ namespace StyleStar
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            KeyboardState kbState = Keyboard.GetState();
-            MouseState mouseState = Mouse.GetState();
+            if (updateProfiling && currentMode == Mode.GamePlay)
+                updateStopwatch.Restart();
+            var log = new DrawCycleEventLog();
+
+            var kbState = Keyboard.GetState();
+            var mouseState = Mouse.GetState();
+            var touchState = TouchPanel.GetState();
+
+            if(touchState.Count > 0)
+            {
+                var newPts = new List<TouchLocation>();
+                var currentBeat = musicManager.GetCurrentBeat();
+
+                foreach (var pt in touchState)
+                {
+                    if (pt.Id == 1)
+                        continue;   // Pt with ID 1 is essentially a "mouse click" and is not helpful
+
+                    Console.WriteLine("ID: {0}\tX: {1}\tY: {2}", pt.Id, pt.Position.X, pt.Position.Y);
+
+                    // Update touch collection
+                    if (touchCollection.Points.ContainsKey((uint)pt.Id))
+                    {
+                        touchCollection.Points[(uint)pt.Id].Update(currentBeat, (int)pt.Position.X, (int)pt.Position.Y);
+                    }
+                    else
+                    { 
+                        touchCollection.Points[(uint)pt.Id] = new TouchPoint(currentBeat)
+                        {
+                            ID = (uint)pt.Id,
+                            RawX = (int)pt.Position.X,
+                            RawY = (int)pt.Position.Y,
+                            RawWidth = 128,
+                            RawHeight = 20
+                        };
+                    }
+                }
+                // Remove points that are no longer being held
+                var ids = touchCollection.Points.Select(x => x.Key).ToList();
+                foreach (var id in ids)
+                {
+                    if (touchState.Where(x => (uint)x.Id == id).Count() == 0)
+                        touchCollection.RemoveID(id);
+                }
+            }
+            else
+            {
+                touchCollection.Points.Clear();
+            }
 
             InputMonitor.Update(gameTime);
 
+            if(updateProfiling && currentMode == Mode.GamePlay)
+            log.AddEvent(updateStopwatch.ElapsedMilliseconds, "StatesFetched");
+
             if (InputMonitor.Monitors[Inputs.Exit].State == KeyState.Press)
+            {
                 Exit();
+            }
 
             if ((kbState.IsKeyDown(Keys.RightAlt) || kbState.IsKeyDown(Keys.LeftAlt)) && kbState.IsKeyDown(Keys.Enter) && !prevKbState.IsKeyDown(Keys.Enter))
             {
@@ -247,6 +290,7 @@ namespace StyleStar
                                 leavingLoadingScreen = true;
                                 var meta = SongSelection.GetCurrentSongMeta();
                                 LoadSong(meta);
+                                UIScreen.GenerateLabels(currentSongNotes);
                                 // Set notelane textures
                                 noteLaneAccent1l.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
                                 noteLaneAccent1r.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
@@ -327,6 +371,7 @@ namespace StyleStar
                                 enterLoadingScreen = false;
                                 leavingLoadingScreen = true;
                                 currentMode = Mode.Results;
+                                ResultScreen.UpdateText(currentSongNotes);
                                 loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                                 break;
                             }
@@ -360,6 +405,9 @@ namespace StyleStar
                         break;
                     }
 
+                    if (updateProfiling && currentMode == Mode.GamePlay)
+                        log.AddEvent(updateStopwatch.ElapsedMilliseconds, "Start getting steps");
+
                     // Steps, which will hopefully move to an HID event class later
                     var currentBeat = hitBeat = musicManager.GetCurrentBeat();
                     var currentTime = Globals.GetSecAtBeat(currentBeat);
@@ -371,6 +419,9 @@ namespace StyleStar
 
                     var motionList = currentSongNotes.Motions.Where(x => Math.Abs(x.BeatLocation - currentBeat) < 2 && !x.HitResult.WasHit).ToList();
                     motionList.Sort((x, y) => Math.Abs(x.BeatLocation - currentBeat).CompareTo(Math.Abs(y.BeatLocation - currentBeat)));
+
+                    if (updateProfiling && currentMode == Mode.GamePlay)
+                        log.AddEvent(updateStopwatch.ElapsedMilliseconds, "End getting steps");
 
                     // Temporary keyboard inputs
                     if (!TouchScreenConnected)
@@ -421,6 +472,9 @@ namespace StyleStar
                     else
                         motionCollection.DownBeat = double.NaN;
 
+                    if (updateProfiling && currentMode == Mode.GamePlay)
+                        log.AddEvent(updateStopwatch.ElapsedMilliseconds, "STEPS: Start");
+
                     // Check if we've hit any steps
                     foreach (var step in stepList)
                     {
@@ -445,12 +499,18 @@ namespace StyleStar
                         }
                         else if (touchCollection.Points.Count > 0)
                         {
+                            
                             if (touchCollection.CheckHit(step))
                             {
                                 gradeCollection.Set(gameTime, step);
                                 currentSongNotes.AddToScore(NoteType.Step, step.HitResult.Difference);
                             }
                         }
+                    }
+                    if (updateProfiling && currentMode == Mode.GamePlay)
+                    {
+                        log.AddEvent(updateStopwatch.ElapsedMilliseconds, "STEPS: End");
+                        log.AddEvent(updateStopwatch.ElapsedMilliseconds, "HOLDS: Start");
                     }
 
                     // Check if we've hit or are still hitting any holds
@@ -487,6 +547,12 @@ namespace StyleStar
                             }
                         }
 
+                        if (updateProfiling && currentMode == Mode.GamePlay)
+                        {
+                            log.AddEvent(updateStopwatch.ElapsedMilliseconds, "HOLDS: End");
+                            log.AddEvent(updateStopwatch.ElapsedMilliseconds, "SHUFFLES: Start");
+                        }
+
                         // Check any shuffles separately
                         var shuffles = hold.Notes.Where(x => x.Type == NoteType.Shuffle && x.HitResult.WasHit == false);
                         foreach (var shuffle in shuffles)
@@ -508,11 +574,17 @@ namespace StyleStar
                                     currentSongNotes.AddToScore(NoteType.Hold, shuffle.HitResult.Difference);
                                 }
                             }
-                            else if (horzMotion)
+                            else if (touchCollection.Points.Count > 0)
                             {
-                                // Gotta see if we even remotely swiped the right area
+                                if (touchCollection.CheckHit(shuffle))
+                                {
+                                    currentSongNotes.AddToScore(NoteType.Hold, shuffle.HitResult.Difference);
+                                }
                             }
                         }
+
+                        if (updateProfiling)
+                            log.AddEvent(updateStopwatch.ElapsedMilliseconds, "SHUFFLES: End");
 
                         // Let the note figure out itself whether it's being held and scoring
                         var holdResult = hold.CheckHold(touchCollection, currentBeat);
@@ -578,16 +650,20 @@ namespace StyleStar
                     }
 
                     if (InputMonitor.Monitors[Inputs.Down].State == KeyState.Press)
+                    {
                         Globals.SpeedScale -= 0.5;
+                        UIScreen.UpdateSpeed();
+                    }
 
                     if (InputMonitor.Monitors[Inputs.Up].State == KeyState.Press)
+                    {
                         Globals.SpeedScale += 0.5;
+                        UIScreen.UpdateSpeed();
+                    }
 
                     if (kbState.IsKeyDown(Keys.Delete) && !prevKbState.IsKeyDown(Keys.Delete))
                         drawRateMin = float.PositiveInfinity;
 
-                    if (kbState.IsKeyDown(Keys.P) && !prevKbState.IsKeyDown(Keys.P))
-                        ExportLog();
 
                     //// Modify Camera
                     //bool camChanged = false;
@@ -671,6 +747,11 @@ namespace StyleStar
             // TODO: Add your update logic here
             updateRate = 1.0f / (float)(gameTime.ElapsedGameTime.TotalMilliseconds / 1000);
 
+            if (updateProfiling && currentMode == Mode.GamePlay)
+                UpdateCycleLog.Add(log);
+
+            if (kbState.IsKeyDown(Keys.P) && !prevKbState.IsKeyDown(Keys.P))
+                ExportLog();
 
             base.Update(gameTime);
 
@@ -684,9 +765,9 @@ namespace StyleStar
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            if (enableProfiling)
-                stopwatch.Restart();
-            var log = new DrawCycleEventLog();
+            if (Globals.DrawProfiling)
+                Globals.DrawStopwatch.Restart();
+            var log = Globals.DrawTempLog = new DrawCycleEventLog();
 
             drawRate = 1.0f / (float)(gameTime.ElapsedGameTime.TotalMilliseconds / 1000);
             drawRateMin = Math.Min(drawRate, drawRateMin);
@@ -732,8 +813,8 @@ namespace StyleStar
                     noteLaneAccent2r.Draw(view, projection);
                     gradeZone.Draw(view, projection);
 
-                    if (enableProfiling)
-                        log.AddEvent(stopwatch.ElapsedMilliseconds, "GradeZone Drawn");
+                    if (Globals.DrawProfiling)
+                        log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "GradeZone Drawn");
 
                     if (currentSongNotes != null)
                     {
@@ -743,8 +824,8 @@ namespace StyleStar
                         var notes = currentSongNotes.Steps.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
                         var marks = currentSongNotes.Markers.Where(p => p.BeatLocation > currentBeat - 6 && p.BeatLocation < currentBeat + 16);
 
-                        if (enableProfiling)
-                            log.AddEvent(stopwatch.ElapsedMilliseconds, "Lists generated");
+                        if (Globals.DrawProfiling)
+                            log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "Lists generated");
 
                         // Draw beat markers
                         foreach (var mark in marks)
@@ -758,23 +839,37 @@ namespace StyleStar
                         foreach (var motion in motions)
                             motion.Draw(currentBeat, view, projection);
 
-                        if (enableProfiling)
-                            log.AddEvent(stopwatch.ElapsedMilliseconds, "Motions Drawn");
+                        if (Globals.DrawProfiling)
+                            log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "Motions Drawn");
 
                         var holdStart = holds.Count() - 1;
                         for (int i = 0; i < holds.Count(); i++)
                             holds.ElementAt(i).Draw(currentBeat, view, projection, holdStart - i);
                         //holds.ElementAt(i).Draw(currentBeat, view, projection);
 
-                        if (enableProfiling)
-                            log.AddEvent(stopwatch.ElapsedMilliseconds, "Holds Drawn");
+                        if (Globals.DrawProfiling)
+                            log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "Holds Drawn");
 
                         foreach (var note in notes)
                             note.Draw(currentBeat, view, projection);
 
-                        if (enableProfiling)
-                            log.AddEvent(stopwatch.ElapsedMilliseconds, "Steps Drawn");
+                        if (Globals.DrawProfiling)
+                            log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "Steps Drawn");
                     }
+
+                    // Draw Grades
+                    spriteBatch.Begin();
+                    gradeCollection.Draw(spriteBatch, gameTime);
+                    spriteBatch.End();
+
+                    if (Globals.DrawProfiling)
+                        log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "Grades Drawn");
+
+                    // Draw UI elements
+                    UIScreen.Draw(spriteBatch, currentSongNotes);
+
+                    if (Globals.DrawProfiling)
+                        log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "UI Drawn");
 
                     // Draw FPS counters
                     if (drawFpsCounter)
@@ -803,14 +898,6 @@ namespace StyleStar
                         spriteBatch.End();
                     }
 
-                    // Draw Grades
-                    spriteBatch.Begin();
-                    gradeCollection.Draw(spriteBatch, gameTime);
-                    spriteBatch.End();
-
-                    // Draw UI elements
-                    UIScreen.Draw(spriteBatch, currentSongNotes);
-
                     // Draw hit stats
                     if (true)
                     {
@@ -824,8 +911,8 @@ namespace StyleStar
                         spriteBatch.End();
                     }
 
-                    if (enableProfiling)
-                        log.AddEvent(stopwatch.ElapsedMilliseconds, "FPS counters drawn");
+                    if (Globals.DrawProfiling)
+                        log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "On-screen Debug Drawn");
 
                     if (enterLoadingScreen || leavingLoadingScreen)
                         DrawLoadingTransition(gameTime);
@@ -844,10 +931,11 @@ namespace StyleStar
 
             base.Draw(gameTime);
 
-            if (enableProfiling)
+            if (Globals.DrawProfiling)
             {
-                log.AddEvent(stopwatch.ElapsedMilliseconds, "Base Method");
-                DrawCycleLog.Add(log);
+                log.AddEvent(Globals.DrawStopwatch.ElapsedMilliseconds, "Base Method");
+
+                Globals.DrawCycleLog.Add(log);
             }
         }
 
@@ -873,30 +961,90 @@ namespace StyleStar
             spriteBatch.End();
         }
 
+        List<string> drawHeaders = new List<string>();
+
         private void ExportLog()
         {
-            if (DrawCycleLog.Count == 0)
-                return;
-
-            using (StreamWriter fs = new StreamWriter(new FileStream("./log.csv", FileMode.Append)))
+            if (Globals.DrawCycleLog.Count > 0)
             {
-                if (fs.BaseStream.Position == 0)
+                using (StreamWriter fs = new StreamWriter(new FileStream("./log.csv", FileMode.Append)))
                 {
-                    foreach (var header in DrawCycleLog[0].Events)
+                    if (fs.BaseStream.Position == 0)
                     {
-                        fs.Write(header.Item2 + ",");
+                        foreach (var entry in Globals.DrawCycleLog)
+                        {
+                            foreach (var evt in entry.Events)
+                            {
+                                if (!drawHeaders.Contains(evt.Item2))
+                                {
+                                    drawHeaders.Add(evt.Item2);
+                                    fs.Write(evt.Item2 + ",");
+                                }
+                            }
+                        }
+                        fs.Write("\n");
                     }
-                    fs.Write("\n");
+                    foreach (var item in Globals.DrawCycleLog)
+                    {
+                        foreach (var header in drawHeaders)
+                        {
+                            var match = item.Events.FirstOrDefault(x => x.Item2 == header);
+                            if (match != null)
+                                fs.Write(match.Item1 + ",");
+                            else
+                                fs.Write(",");
+                        }
+                        fs.Write("\n");
+                    }
+                    Globals.DrawCycleLog.Clear();
                 }
-                foreach (var item in DrawCycleLog)
+            }
+            if (UpdateCycleLog.Count > 0)
+            {
+                using (StreamWriter fs = new StreamWriter(new FileStream("./log-update.csv", FileMode.Append)))
                 {
-                    foreach (var time in item.Events)
+                    if (fs.BaseStream.Position == 0)
                     {
-                        fs.Write(time.Item1 + ",");
+                        foreach (var header in UpdateCycleLog[0].Events)
+                        {
+                            fs.Write(header.Item2 + ",");
+                        }
+                        fs.Write("\n");
                     }
-                    fs.Write("\n");
+                    foreach (var item in UpdateCycleLog)
+                    {
+                        foreach (var time in item.Events)
+                        {
+                            fs.Write(time.Item1 + ",");
+                        }
+                        fs.Write("\n");
+                    }
+                    UpdateCycleLog.Clear();
                 }
-                DrawCycleLog.Clear();
+            }
+
+            if (Globals.TouchCycleLog.Count > 0)
+            {
+                using (StreamWriter fs = new StreamWriter(new FileStream("./log-touch.csv", FileMode.Append)))
+                {
+                    if (fs.BaseStream.Position == 0)
+                    {
+                        foreach (var header in Globals.TouchCycleLog[0].Events)
+                        {
+                            fs.Write(header.Item2 + ",");
+                        }
+                        fs.Write("\n");
+                    }
+                    foreach (var item in Globals.TouchCycleLog)
+                    {
+                        foreach (var time in item.Events)
+                        {
+                            fs.Write(time.Item1 + ",");
+                        }
+                        fs.Write("\n");
+                    }
+                    Globals.TouchCycleLog.Clear();
+                }
             }
         }
 

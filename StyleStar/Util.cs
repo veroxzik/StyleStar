@@ -19,7 +19,6 @@ namespace StyleStar
         /// the string will be absolutely-centered inside of the boundaries.
         static public void DrawString(this SpriteBatch spriteBatch, SpriteFont font, string strToDraw, Rectangle boundaries, Color color, Justification just = Justification.Center)
         {
-
             Vector2 size = MeasureString(font, strToDraw);
 
             float xScale = (boundaries.Width / size.X);
@@ -53,6 +52,63 @@ namespace StyleStar
                 spriteBatch.Draw(Globals.Textures["BeatMark"], new Rectangle((int)boundaries.X, (int)boundaries.Y, boundaries.Width, boundaries.Height), Color.Red);
             spriteBatch.DrawStringAbs(font, strToDraw, position, color, scale);
         } // end DrawString()
+
+        public static Vector2 GetStringFromBoundingBox(SpriteFont font, string text, Rectangle boundaries, Justification just, out float scale, out Rectangle boundingBox)
+        {
+            Vector2 size = MeasureString(font, text);
+
+            float xScale = (boundaries.Width / size.X);
+            float yScale = (boundaries.Height / size.Y);
+
+            // Taking the smaller scaling value will result in the text always fitting in the boundaires.
+            scale = Math.Min(xScale, yScale);
+
+            // Figure out the location to absolutely-center it in the boundaries rectangle.
+            int strWidth = (int)Math.Round(size.X * scale);
+            int strHeight = (int)Math.Round(size.Y * scale);
+            boundingBox = new Rectangle(0, 0, strWidth, strHeight);
+            Vector2 position = new Vector2();
+            if(just.HasFlag(Justification.Left))
+            {
+                position.X = boundaries.X;
+            }
+            else if (just.HasFlag(Justification.Center))
+            {
+                position.X = (((boundaries.Width - strWidth) / 2) + boundaries.X);
+            }
+            else if (just.HasFlag(Justification.Right))
+            {
+                position.X = boundaries.X + boundaries.Width - strWidth;
+            }
+            if(just.HasFlag(Justification.Top))
+            {
+                position.Y = boundaries.Y;
+            }
+            else if (just.HasFlag(Justification.Middle))
+            {
+                position.Y = (((boundaries.Height - strHeight) / 2) + boundaries.Y);
+            }
+            else if (just.HasFlag(Justification.Bottom))
+            {
+                position.Y = boundaries.Y + boundaries.Height - strHeight;
+            }
+
+            boundingBox.X = (int)position.X;
+            boundingBox.Y = (int)position.Y;
+
+            int newLines = text.Count(c => c == '\n');
+            float yDiff = (font.LineSpacing * (newLines + 1)) - size.Y;
+            position.Y -= yDiff * scale;
+
+            return position;
+        }
+
+        public static float GetTextOffset(SpriteFont font, string text)
+        {
+            Vector2 size = MeasureString(font, text);
+            int newLines = text.Count(c => c == '\n');
+            return (font.LineSpacing * (newLines + 1)) - size.Y;
+        }
 
         public static void DrawStringFixedHeight(this SpriteBatch sb, SpriteFont font, string text, Vector2 position, Color color, float maxFontHeight, Justification justification = Justification.Middle, float strokeWidth = 0.0f, Color? strokeColor = null)
         {
@@ -95,6 +151,44 @@ namespace StyleStar
             }
             sb.DrawStringAbs(font, text, position + offset, color, yScale);
 
+        }
+
+        public static Vector2 GetStringFixedHeight(SpriteFont font, string text, Vector2 position, float maxFontHeight, Justification justification, out float scale, out Rectangle boundingBox)
+        {
+            Vector2 size = MeasureString(font, text);
+            scale = (maxFontHeight / size.Y);
+            int strWidth = (int)Math.Round(size.X * scale);
+            int strHeight = (int)Math.Round(size.Y * scale);
+
+            float xOffset = 0, yOffset = 0;
+            if (justification.HasFlag(Justification.Right))
+            {
+                xOffset += -strWidth;
+            }
+            else if (justification.HasFlag(Justification.Center))
+            {
+                xOffset += -strWidth / 2;
+            }
+            if (!justification.HasFlag(Justification.Bottom) && !justification.HasFlag(Justification.Middle))
+            {
+                //yOffset += 0;
+            }
+            else if (justification.HasFlag(Justification.Bottom))
+            {
+                yOffset += -strHeight;
+            }
+            else if (justification.HasFlag(Justification.Middle))
+            {
+                yOffset += -strHeight / 2;
+            }
+
+            boundingBox = new Rectangle((int)(position.X + xOffset), (int)(position.Y + yOffset), strWidth, strHeight);
+
+            int newLines = text.Count(c => c == '\n');
+            float yDiff = (font.LineSpacing * (newLines + 1)) - size.Y;
+            position.Y -= yDiff * scale;
+
+            return position + new Vector2(xOffset, yOffset);
         }
 
         public static void DrawStringAbs(this SpriteBatch sb, SpriteFont font, string strToDraw, Vector2 position, Color color)
