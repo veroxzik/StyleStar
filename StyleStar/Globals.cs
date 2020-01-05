@@ -13,6 +13,7 @@ namespace StyleStar
         public static GraphicsDeviceManager GraphicsManager { get; set; }
 
         public static Vector2 WindowSize { get; set; }
+        public static ConfigFile ConfigFile { get; set; }
 
         public static double NoteSpeed { get; set; } = 50;    // World units per second
         public static double BeatToWorldXUnits { get; set; } = 3;
@@ -42,7 +43,7 @@ namespace StyleStar
 
         public static Dictionary<string, SpriteFont> Font { get; set; }
 
-        public static bool IsAutoModeEnabled { get; set; } = false;
+        public static GameSettingsScreen.AutoMode AutoMode { get; set; } = GameSettingsScreen.AutoMode.Off;
 
         // DEBUG STUFF
         public static bool TouchProfiling = true;
@@ -213,6 +214,11 @@ namespace StyleStar
 
             Textures["GpLowerBG"] = ContentManager.Load<Texture2D>("Gameplay_LowerBG");
 
+            Textures["SettingsBg1"] = ContentManager.Load<Texture2D>("Settings_BG1");
+            Textures["SettingsBg2"] = ContentManager.Load<Texture2D>("Settings_BG2");
+            Textures["SettingsBg3"] = ContentManager.Load<Texture2D>("Settings_BG3");
+            Textures["SettingsSelection"] = ContentManager.Load<Texture2D>("Settings_Selection");
+
             Effect = new BasicEffect(GraphicsManager.GraphicsDevice);
         }
     }
@@ -244,7 +250,7 @@ namespace StyleStar
     public enum Mode
     {
         MainMenu,
-        Options,
+        GameSettings,
         SongSelect,
         Loading,
         GamePlay,
@@ -264,5 +270,12 @@ namespace StyleStar
         Forfeit,
         Failed,
         Cleared
+    }
+
+    public enum DialogResult
+    {
+        NoAction,
+        Confirm,
+        Cancel
     }
 }

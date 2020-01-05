@@ -104,8 +104,8 @@ namespace StyleStar
                         if (Regex.IsMatch(line, "(#BPM)"))
                         {
                             string[] bpmParse = line.Split(new string[] { "#BPM", ": " }, StringSplitOptions.RemoveEmptyEntries);
-                            if (!BpmIndex.ContainsKey(Convert.ToInt32(bpmParse[0])))
-                                BpmIndex.Add(Convert.ToInt32(bpmParse[0]), Convert.ToDouble(bpmParse[1]));
+                            if (!BpmIndex.ContainsKey(bpmParse[0].ParseBase36()))
+                                BpmIndex.Add(bpmParse[0].ParseBase36(), Convert.ToDouble(bpmParse[1]));
                             else
                                 // Print an error here in some log somewhere
                                 Console.WriteLine("When parsing " + fileName + ", multiple BPM definitions were found with the same ID number.");

@@ -117,14 +117,24 @@ namespace StyleStar
                         // Parse BPM changes
                         else if (Regex.IsMatch(line, "[#][0-9]{3}(08:)"))
                         {
-                            var parsed = ParseLine(line);
+                            //var parsed = ParseLine(line);
+                            var split = line.Replace(" ", string.Empty).Split(':');
+                            var parsed = new NoteParse();
+                            parsed.Measure = Convert.ToDouble(line.Substring(1, 3));
+                            parsed.Notes = new List<Tuple<int, int>>();
+                            for (int i = 0; i < split[1].Length; i+=2)
+                            {
+                                string id = split[1][i].ToString() + split[1][i + 1].ToString();
+                                parsed.Notes.Add(new Tuple<int, int>(id.ParseBase36(), 0));
+                            }
+
                             double noteSub = 1.0 / parsed.Notes.Count;
                             for (int i = 0; i < parsed.Notes.Count; i++)
                             {
-                                if (parsed.Notes[i].Item2 == 0)
+                                if (parsed.Notes[i].Item1 == 0)
                                     break;
                                 else
-                                    Metadata.BpmEvents.Add(new BpmChangeEvent(Metadata.BpmIndex[parsed.Notes[i].Item2], 4 * (parsed.Measure + i * noteSub)));
+                                    Metadata.BpmEvents.Add(new BpmChangeEvent(Metadata.BpmIndex[parsed.Notes[i].Item1], 4 * (parsed.Measure + i * noteSub)));
                             }
                         }
                     }
@@ -189,8 +199,7 @@ namespace StyleStar
             parse.NoteClass = Convert.ToInt32(meta.Substring(4, 1));
             parse.LaneIndex = Convert.ToInt32(meta.Substring(5, 1), 16);
             if (meta.Length == 7)
-                //parse.NoteIdentifier = Convert.ToInt32(line.Substring(6, 1)[0]) - 'A';
-                parse.NoteIdentifier = ParseAlphanumeric(line.Substring(6, 1));
+                parse.NoteIdentifier = line.Substring(6, 1).ParseBase36();
             else
                 parse.NoteIdentifier = -1;
 
@@ -209,14 +218,6 @@ namespace StyleStar
             public int LaneIndex;
             public int NoteIdentifier;
             public List<Tuple<int, int>> Notes;
-        }
-
-        private int ParseAlphanumeric(string s)
-        {
-            if (Regex.IsMatch(s, "[0-9]"))
-                return Convert.ToInt32(s);
-            else
-                return Convert.ToInt32(s.ToLower()[0]) - 'a' + 10;
         }
 
         private int ParseNoteWidth(string s)

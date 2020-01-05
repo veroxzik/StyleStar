@@ -21,7 +21,8 @@ namespace StyleStar
             {Inputs.Back, new KeyMonitor(Keys.Escape) },
             {Inputs.Back2, new KeyMonitor(Keys.Back) },
             {Inputs.Auto, new KeyMonitor(Keys.F2) },
-            {Inputs.Select, new KeyMonitor(Keys.Enter) }
+            {Inputs.Select, new KeyMonitor(Keys.Enter) },
+            {Inputs.GameOptions, new KeyMonitor(Keys.F1) }
         };
 
         public static void Update(GameTime time)
@@ -96,6 +97,7 @@ namespace StyleStar
         Back,
         Back2,
         Auto,
-        Select
+        Select,
+        GameOptions
     }
 }

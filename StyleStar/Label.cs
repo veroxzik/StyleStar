@@ -14,20 +14,22 @@ namespace StyleStar
 
         public string Text { get; set; }
 
-        private SpriteFont _font; 
-        private Vector2 _drawLocation;
-        private Color _color;
-        private float _scale = -1.0f;
-        private Rectangle _boundingBox;
+        protected SpriteFont _font;
+        protected Vector2 _drawLocation;
+        protected Color _color;
+        protected float _scale = -1.0f;
+        protected Rectangle _boundingBox;
 
-        private List<Vector2> _strokeOffsets = new List<Vector2>();
+        protected List<Vector2> _strokeOffsets = new List<Vector2>();
 
-        private Vector2 _lastLocation;
-        private Justification _inputJustification;
-        private Rectangle _inputBoundingBox;
-        private LabelType _inputType;
-        private float _inputParameter = -1f;
-        private Stroke _inputStroke;
+        protected Vector2 _lastLocation;
+        protected Justification _inputJustification;
+        protected Rectangle _inputBoundingBox;
+        protected LabelType _inputType;
+        protected float _inputParameter = -1f;
+        protected Stroke _inputStroke;
+
+        public Label() { }
 
         public Label(SpriteFont font, string text)
         {
@@ -58,7 +60,7 @@ namespace StyleStar
             Update(boundingBox, color, justification);
         }
 
-        private void GenerateStrokeOffsets()
+        protected void GenerateStrokeOffsets()
         {
             if (_inputStroke == null)
                 return;

@@ -79,11 +79,12 @@ namespace StyleStar
                 }
             }
 
-            if (Globals.IsAutoModeEnabled)
+            if (Globals.AutoMode != GameSettingsScreen.AutoMode.Off)
             {
                 plotLocation.X = Globals.WindowSize.X - 10;
                 plotLocation.Y = 10;
-                sb.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", plotLocation, Color.White, 0.1f, Justification.Top | Justification.Right);
+                string str = Globals.AutoMode == GameSettingsScreen.AutoMode.Auto ? "AUTO MODE ENABLED" : "AUTO DOWN ENABLED";
+                sb.DrawStringJustify(Globals.Font["Franklin"], str, plotLocation, Color.White, 0.1f, Justification.Top | Justification.Right);
             }
 
             sb.End();

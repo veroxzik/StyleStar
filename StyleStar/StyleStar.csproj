@@ -44,6 +44,7 @@
     <Compile Include="BeatMarker.cs" />
     <Compile Include="BeatMarkerTexture.cs" />
     <Compile Include="BpmChange.cs" />
+    <Compile Include="ConfigFile.cs" />
     <Compile Include="Defines.cs" />
     <Compile Include="FontLoader.cs" />
     <Compile Include="Globals.cs" />
@@ -63,7 +64,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QuadTexture.cs" />
+    <Compile Include="GameSettingsScreen.cs" />
     <Compile Include="ResultScreen.cs" />
+    <Compile Include="SelectableLabel.cs" />
     <Compile Include="ShuffleNoteTexture.cs" />
     <Compile Include="SongMetadata.cs" />
     <Compile Include="SongSelection.cs" />

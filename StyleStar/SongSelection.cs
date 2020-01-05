@@ -261,7 +261,7 @@ namespace StyleStar
                     //sb.DrawStringFixedHeight(Globals.Font["Franklin"], "Choreo: " + Songlist[currentSongIndex].GetPropertyFromChild("Designer", currentSongLevelIndex), new Vector2(1220, 670), Color.White, 20.0f, Justification.Right | Justification.Bottom);
                 }
 
-                if (Globals.IsAutoModeEnabled)
+                if (Globals.AutoMode != GameSettingsScreen.AutoMode.Off)
                     labels["AUTO"].Draw(sb);
                 //sb.DrawStringJustify(Globals.Font["Franklin"], "AUTO MODE ENABLED", new Vector2(Globals.WindowSize.X - 10, 10), Color.White, 0.1f, Justification.Top | Justification.Right);
             }

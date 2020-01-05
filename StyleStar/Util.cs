@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace StyleStar
 {
@@ -363,6 +364,24 @@ namespace StyleStar
             else
                 return c;
         }
+
+        // Parsing Functions
+
+        private const string CharList = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+        public static int ParseBase36(this string s)
+        {
+            int result = 0;
+            int pos = 0;
+            var reversed = s.ToLower().Reverse();
+            foreach (var c in reversed)
+            {
+                result += CharList.IndexOf(c) * (int)Math.Pow(36, pos);
+                pos++;
+            }
+            return result;
+        }
+
     }
 
     [Flags]

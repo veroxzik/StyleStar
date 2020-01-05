@@ -39,6 +39,7 @@ namespace StyleStar
         float drawRateMin = float.PositiveInfinity;
 
         private Mode currentMode = Mode.SongSelect;
+        private Mode destinationMode = Mode.GameSettings;
 
         UserSettings currentUserSettings = new UserSettings();
 
@@ -92,29 +93,12 @@ namespace StyleStar
             Content.RootDirectory = "Content";
             Globals.ContentManager = Content;
             Globals.GraphicsManager = graphics;
+            Globals.ConfigFile = new ConfigFile(Defines.ConfigFile);
 
             //this.graphics.SynchronizeWithVerticalRetrace = false;
             //base.IsFixedTimeStep = false;
             //this.TargetElapsedTime = TimeSpan.FromSeconds(1.0f / 60.0f);
 
-            // Load config file
-            if (File.Exists(Defines.ConfigFile))
-            {
-                var configTable = Toml.ReadFile(Defines.ConfigFile).ToDictionary();
-
-                if (configTable.ContainsKey(Defines.KeyConfig))
-                    InputMonitor.SetKeys((Dictionary<string, object>)configTable[Defines.KeyConfig]);
-                if(configTable.ContainsKey(Defines.TouchConfig))
-                    TouchSettings.SetConfig((Dictionary<string, object>)configTable[Defines.TouchConfig]);
-            }
-
-            // Save config file (regardless of if there was one already)
-            var data = new Dictionary<string, object>()
-            {
-                {Defines.KeyConfig, InputMonitor.GetConfig() },
-                {Defines.TouchConfig, TouchSettings.GetConfig() }
-            };
-            Toml.WriteFile(data, Defines.ConfigFile);
         }
 
         /// <summary>
@@ -193,8 +177,34 @@ namespace StyleStar
             SongSelection.ImportSongs("Songs");
 
             // Generate Static Text Labels
+            GameSettingsScreen.GenerateLabels();
             SongSelection.GenerateLabels();
             ResultScreen.GenerateLabels();
+
+            // Load config file
+            Globals.ConfigFile.Load();
+
+            //if (File.Exists(Defines.ConfigFile))
+            //{
+            //    var configTable = Toml.ReadFile(Defines.ConfigFile).ToDictionary();
+
+            //    if (configTable.ContainsKey(Defines.KeyConfig))
+            //        InputMonitor.SetKeys((Dictionary<string, object>)configTable[Defines.KeyConfig]);
+            //    if (configTable.ContainsKey(Defines.TouchConfig))
+            //        TouchSettings.SetConfig((Dictionary<string, object>)configTable[Defines.TouchConfig]);
+            //    if (configTable.ContainsKey(Defines.GameConfig))
+            //        GameSettingsScreen.SetConfig((Dictionary<string, object>)configTable[Defines.GameConfig]);
+            //}
+
+            // Save config file (regardless of if there was one already)
+            Globals.ConfigFile.Save();
+            //var data = new Dictionary<string, object>()
+            //{
+            //    {Defines.KeyConfig, InputMonitor.GetConfig() },
+            //    {Defines.TouchConfig, TouchSettings.GetConfig() },
+            //    {Defines.GameConfig, GameSettingsScreen.GetConfig() }
+            //};
+            //Toml.WriteFile(data, Defines.ConfigFile);
         }
 
         /// <summary>
@@ -281,7 +291,76 @@ namespace StyleStar
             {
                 case Mode.MainMenu:
                     break;
-                case Mode.Options:
+                case Mode.GameSettings:
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                    {
+                        if (gameTime.TotalGameTime.TotalMilliseconds > (loadingScreenTime + loadingScreenTransition + loadingScreenWait))
+                        {
+                            if (enterLoadingScreen)
+                            {
+                                enterLoadingScreen = false;
+                                leavingLoadingScreen = true;
+                                currentMode = Mode.SongSelect;
+                                loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                                break;
+                            }
+                            else
+                            {
+                                leavingLoadingScreen = false;
+                            }
+                        }
+                        else
+                            break;
+                    }
+
+                    if (InputMonitor.Monitors[Inputs.Back].State == KeyState.Press ||
+                            InputMonitor.Monitors[Inputs.Back2].State == KeyState.Press ||
+                            (!disableMouseClick && (mouseState.RightButton == ButtonState.Pressed && prevMouseState.RightButton != ButtonState.Pressed)))
+                    {
+                        if (GameSettingsScreen.GoBack())
+                        {
+                            enterLoadingScreen = true;
+                            loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                        }
+                    }
+
+                    if (InputMonitor.Monitors[Inputs.Down].State == KeyState.Press || (mouseState.ScrollWheelValue < prevMouseState.ScrollWheelValue))
+                    {
+                        GameSettingsScreen.ScrollDown();
+                    }
+
+                    if (InputMonitor.Monitors[Inputs.Up].State == KeyState.Press || (mouseState.ScrollWheelValue > prevMouseState.ScrollWheelValue))
+                    {
+                        GameSettingsScreen.ScrollUp();
+                    }
+
+                    if (InputMonitor.Monitors[Inputs.Right].State == KeyState.Press)
+                    {
+                        GameSettingsScreen.ScrollRight();
+                    }
+
+                    if (InputMonitor.Monitors[Inputs.Left].State == KeyState.Press)
+                    {
+                        GameSettingsScreen.ScrollLeft();
+                    }
+
+                    if (InputMonitor.Monitors[Inputs.Select].State == KeyState.Press)
+                    {
+                        DialogResult msg = GameSettingsScreen.Select();
+                        if (msg != DialogResult.NoAction)
+                        {
+                            enterLoadingScreen = true;
+                            loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                            if (msg == DialogResult.Confirm)
+                            {
+                                Globals.ConfigFile.Update();
+                                Globals.ConfigFile.Save();
+                            }
+                            else
+                                Globals.ConfigFile.ResetGameSettings();
+                        }
+                    }
+
                     break;
                 case Mode.SongSelect:
                     // If we're entering or leaving a loading screen, block other inputs
@@ -291,19 +370,29 @@ namespace StyleStar
                         {
                             if (enterLoadingScreen)
                             {
-                                enterLoadingScreen = false;
-                                leavingLoadingScreen = true;
-                                var meta = SongSelection.GetCurrentSongMeta();
-                                LoadSong(meta);
-                                UIScreen.GenerateLabels(currentSongNotes);
-                                // Set notelane textures
-                                noteLaneAccent1l.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
-                                noteLaneAccent1r.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
-                                noteLaneAccent2l.SetColor(meta.ColorFore.IfNull(ThemeColors.Blue));
-                                noteLaneAccent2r.SetColor(meta.ColorFore.IfNull(ThemeColors.Blue));
-                                currentMode = Mode.GamePlay;
-                                loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
-                                break;
+                                if (destinationMode == Mode.GamePlay)
+                                {
+                                    enterLoadingScreen = false;
+                                    leavingLoadingScreen = true;
+                                    var meta = SongSelection.GetCurrentSongMeta();
+                                    LoadSong(meta);
+                                    UIScreen.GenerateLabels(currentSongNotes);
+                                    // Set notelane textures
+                                    noteLaneAccent1l.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
+                                    noteLaneAccent1r.SetColor(meta.ColorAccent.IfNull(ThemeColors.Purple));
+                                    noteLaneAccent2l.SetColor(meta.ColorFore.IfNull(ThemeColors.Blue));
+                                    noteLaneAccent2r.SetColor(meta.ColorFore.IfNull(ThemeColors.Blue));
+                                    currentMode = Mode.GamePlay;
+                                    loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                                    break;
+                                }
+                                else if (destinationMode == Mode.GameSettings)
+                                {
+                                    enterLoadingScreen = false;
+                                    leavingLoadingScreen = true;
+                                    currentMode = Mode.GameSettings;
+                                    loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                                }
                             }
                             else
                             {
@@ -344,6 +433,7 @@ namespace StyleStar
                         {
                             if (SongSelection.Select())
                             {
+                                destinationMode = Mode.GamePlay;
                                 enterLoadingScreen = true;
                                 loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
                             }
@@ -357,10 +447,31 @@ namespace StyleStar
                             SongSelection.GoBack();
                         }
 
-                        if (InputMonitor.Monitors[Inputs.Auto].State == KeyState.Press)
-                            Globals.IsAutoModeEnabled = !Globals.IsAutoModeEnabled;
-                    }
+                        if(InputMonitor.Monitors[Inputs.GameOptions].State == KeyState.Press)
+                        {
+                            destinationMode = Mode.GameSettings;
+                            enterLoadingScreen = true;
+                            loadingScreenTime = gameTime.TotalGameTime.TotalMilliseconds;
+                        }
 
+                        if (InputMonitor.Monitors[Inputs.Auto].State == KeyState.Press)
+                        {
+                            switch (Globals.AutoMode)
+                            {
+                                case GameSettingsScreen.AutoMode.Off:
+                                    Globals.AutoMode = GameSettingsScreen.AutoMode.Auto;
+                                    break;
+                                case GameSettingsScreen.AutoMode.Auto:
+                                    Globals.AutoMode = GameSettingsScreen.AutoMode.AutoDown;
+                                    break;
+                                case GameSettingsScreen.AutoMode.AutoDown:
+                                    Globals.AutoMode = GameSettingsScreen.AutoMode.Off;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
                     break;
                 case Mode.Loading:
                     break;
@@ -492,7 +603,7 @@ namespace StyleStar
                             step.HitResult.Difference = Timing.MissFlag;
                             currentSongNotes.AddToScore(NoteType.Step, step.HitResult.Difference);
                         }
-                        else if (Globals.IsAutoModeEnabled)
+                        else if (Globals.AutoMode == GameSettingsScreen.AutoMode.Auto)
                         {
                             if (Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
                             {
@@ -532,7 +643,7 @@ namespace StyleStar
                                 hold.StartNote.HitResult.Difference = Timing.MissFlag;
                                 currentSongNotes.AddToScore(NoteType.Hold, hold.StartNote.HitResult.Difference);
                             }
-                            else if (Globals.IsAutoModeEnabled)
+                            else if (Globals.AutoMode == GameSettingsScreen.AutoMode.Auto)
                             {
                                 if (Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
                                 {
@@ -570,7 +681,7 @@ namespace StyleStar
                                 shuffle.HitResult.Difference = Timing.MissFlag;
                                 currentSongNotes.AddToScore(NoteType.Hold, shuffle.HitResult.Difference);
                             }
-                            else if (Globals.IsAutoModeEnabled)
+                            else if (Globals.AutoMode == GameSettingsScreen.AutoMode.Auto)
                             {
                                 if (Math.Abs(stepTimeMS) < NoteTiming.AutoTolerance)
                                 {
@@ -610,7 +721,8 @@ namespace StyleStar
                             motion.HitResult.Difference = Timing.MissFlag;
                             currentSongNotes.AddToScore(NoteType.Motion, motion.HitResult.Difference);
                         }
-                        else if (Globals.IsAutoModeEnabled)
+                        else if (Globals.AutoMode == GameSettingsScreen.AutoMode.Auto || 
+                            (Globals.AutoMode == GameSettingsScreen.AutoMode.AutoDown && motion.Motion == Motion.Down))
                         {
                             if (Math.Abs(motionTimeMS) < NoteTiming.AutoTolerance)
                             {
@@ -784,7 +896,13 @@ namespace StyleStar
             {
                 case Mode.MainMenu:
                     break;
-                case Mode.Options:
+                case Mode.GameSettings:
+                    GraphicsDevice.Clear(Color.Black);
+
+                    GameSettingsScreen.Draw(spriteBatch);
+
+                    if (enterLoadingScreen || leavingLoadingScreen)
+                        DrawLoadingTransition(gameTime);
                     break;
                 case Mode.SongSelect:
                     GraphicsDevice.Clear(Color.Black);

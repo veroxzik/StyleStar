@@ -199,7 +199,7 @@ namespace StyleStar
             }
 
             var validPoints = tc.Points.Where(x => x.Value.MinX < noteMax && x.Value.MaxX > noteMin).ToList();
-            if (validPoints.Count == 0 && !Globals.IsAutoModeEnabled)
+            if (validPoints.Count == 0 && !(Globals.AutoMode == GameSettingsScreen.AutoMode.Auto))
             {
                 IsPlayerHolding = false;
             }
